@@ -1,0 +1,8 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "PipelinesJob",
+    "description": "Create or manage a Pipelines job",
+    "type": "object",
+    "properties": {"pipeline_id": {}, "data": {}, "event": {}, "__options": {}},
+    "required": ["pipeline_id", "event"]
+}

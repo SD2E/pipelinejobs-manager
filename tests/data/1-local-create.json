@@ -1,0 +1,15 @@
+{
+    "pipeline_id": null,
+    "data": {},
+    "event": "create",
+    "__options": {
+        "settings": {
+            "mongodb": {
+                "database": "catalog_dev"
+            },
+            "catalogstore": {
+                "debug": false
+            }
+        }
+    }
+}
