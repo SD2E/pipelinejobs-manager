@@ -108,6 +108,9 @@ def convert_ginkgo(schema_file, input_file, verbose=True, output=True, output_fi
                 replicate_val = int(replicate_val)
             sample_doc[SampleConstants.REPLICATE] = replicate_val
 
+        # determinstically derive measurement ids from sample_id + counter (local to sample)
+        measurement_counter = 1
+
         for measurement_key in ginkgo_sample["measurements"].keys():
             measurement_doc = {}
 
@@ -158,8 +161,14 @@ def convert_ginkgo(schema_file, input_file, verbose=True, output=True, output_fi
             if output_doc[SampleConstants.CHALLENGE_PROBLEM] == SampleConstants.CP_NOVEL_CHASSIS:
                 output_doc[SampleConstants.EXPERIMENT_REFERENCE] = SampleConstants.EXPT_DEFAULT_REFERENCE_GINKGO
 
-            # convey optional measurement id if provided by lab to help with troubleshooting
-            measurement_doc[SampleConstants.MEASUREMENT_ID] = namespace_measurement_id(measurement_key, output_doc[SampleConstants.LAB])
+            # generate a measurement id unique to this sample
+            measurement_doc[SampleConstants.MEASUREMENT_ID] = namespace_measurement_id(".".join([sample_doc[SampleConstants.SAMPLE_ID], str(measurement_counter)]), output_doc[SampleConstants.LAB])
+
+            # record a measurement grouping id to find other linked samples and files
+            measurement_doc[SampleConstants.MEASUREMENT_GROUP_ID] = namespace_measurement_id(measurement_key, output_doc[SampleConstants.LAB])
+
+            measurement_counter = measurement_counter + 1
+
             tmt_prop = "TMT_channel"
             if tmt_prop in measurement_props:
                 tmt_val = measurement_props[tmt_prop]

@@ -344,7 +344,11 @@
                     "type": "string"
                 },
                 "measurement_id": {
-                    "description": "sample id, internal to lab",
+                    "description": "a localized, unique measurement id relating a given sample to one or more files",
+                    "type": "string"
+                },
+                "measurement_group_id": {
+                    "description": "measurement group id, represents a single logical measurement from a lab that aggregates multiple related samples and files",
                     "type": "string"
                 },
                 "instrument_configuration": {

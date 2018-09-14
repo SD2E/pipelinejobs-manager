@@ -191,7 +191,13 @@ def convert_biofab(schema_file, input_file, verbose=True, output=True, output_fi
         "name": "Flow Cytometry 96 well"
         },
         """
+        # generate a measurement id unique to this sample
+        # Biofab does not have additional measurements per file, can fix to 1
         measurement_doc[SampleConstants.MEASUREMENT_ID] = namespace_measurement_id(
+            ".".join([sample_doc[SampleConstants.SAMPLE_ID], "1"]), output_doc[SampleConstants.LAB])
+
+        # record a measurement grouping id to find other linked samples and files
+        measurement_doc[SampleConstants.MEASUREMENT_GROUP_ID] = namespace_measurement_id(
             biofab_sample["generated_by"]["operation_id"], output_doc[SampleConstants.LAB])
 
         # TODO

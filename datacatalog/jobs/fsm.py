@@ -1,6 +1,14 @@
 from transitions import Machine
 import datetime
 import inspect
+from attrdict import AttrDict
+from pprint import pprint
+import functools
+
+class JobFSM(AttrDict):
+    FILTER_KEYS = ('_id', 'transitions', 'states', 'state', 'machine')
+    FILTER_TYPES = (functools.partial)
+    pass
 
 class JobStateMachine(object):
     """Load and manage Job state from serialized record"""
@@ -18,21 +26,30 @@ class JobStateMachine(object):
             'failed', 'finished', 'validating', 'validated', 'validated', 'finalized'], 'dest': 'retired'}
     ]
 
-    def __init__(self, jobdef={}, state='created'):
+    def __init__(self, jobdef, status='created'):
 
         self.data = {}
         ts = current_time()
         for k in jobdef:
-            self.data[k] = jobdef.get(k, None)
-        if 'history' not in self.data:
-            self.data['history'] = [{'CREATED': ts}]
-        self.data['status'] = 'CREATED'
-        self.data['last_event'] = 'CREATE'
+            setattr(self, k, jobdef.get(k, None))
 
+        # These will be empty if jobdef refers to a newly created job
+        if 'history' not in jobdef:
+            self.history = [{'CREATED': {'date': ts, 'data': None}}]
+        if 'status' not in jobdef:
+            self.status = 'CREATED'
+        if 'last_event' not in jobdef:
+            self.last_event = 'CREATE'
+        if 'updated' not in jobdef:
+            self.updated = ts
+
+        initial_state = status
+        if getattr(self, 'status') is not None:
+            initial_state = getattr(self, 'status')
         self.machine = Machine(
             model=self, states=JobStateMachine.states,
             transitions=JobStateMachine.transitions,
-            initial=state,
+            initial=initial_state.lower(),
             auto_transitions=False,
             after_state_change='update_history')
 
@@ -42,16 +59,27 @@ class JobStateMachine(object):
         vars(self)[eventfn](opts, event=eventname)
         return self
 
-    def history(self):
-        return self.data.get('history', [])
+    def get_history(self):
+        return self.history
 
-    def update_history(self, opts, event_name):
+    def update_history(self, opts, event):
         ts = current_time()
         history_entry = {}
-        history_entry[str(self.state).upper()] = ts
-        self.data['history'].append(history_entry)
-        self.data['status']: self.state
-        self.data['last_event'] = event_name
+        history_entry[str(self.state).upper()] = {'date': ts, 'data': opts}
+        self.history.append(history_entry)
+        self.status = self.state
+        self.last_event = event.upper()
+        self.updated = ts
+
+    def as_dict(self):
+        pr = {}
+        for name in dir(self):
+            if name not in JobFSM.FILTER_KEYS:
+                value = getattr(self, name)
+                if not isinstance(value, JobFSM.FILTER_TYPES):
+                    if not name.startswith('__') and not inspect.ismethod(value):
+                        pr[name] = value
+        return JobFSM(pr)
 
 def current_time():
     return datetime.datetime.utcnow()

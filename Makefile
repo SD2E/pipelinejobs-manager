@@ -29,13 +29,28 @@ tests: tests-pytest tests-local
 tests-pytest:
 	bash $(SCRIPT_DIR)/run_container_process.sh $(PYTHON) -m "pytest" $(PYTEST_DIR) $(PYTEST_OPTS)
 
-tests-local: tests-local-create tests-local-run
+tests-local: tests-local-create tests-local-run tests-local-agave-run tests-local-finish tests-local-delete tests-local-force-delete
 
 tests-local-create:
-	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/1-local-create.json
+	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/1-local-create-tacobot.json
 
 tests-local-run:
-	echo "not implemented"
+	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/2-local-event-tacobot-run.json
+
+tests-local-fail:
+	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/3-local-event-tacobot-fail.json
+
+tests-local-agave-run:
+	DOCKER_ENVS_SET="-e event=run -e uuid=b485aa21-c714-5cc7-89f5-44a8427ff38a -e token=c2f338f3e79e4f86" bash $(SCRIPT_DIR)/run_container_message.sh tests/data/2-local-event-tacobot-agave-run.json
+
+tests-local-finish:
+	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/3-local-event-tacobot-finish.json
+
+tests-local-delete:
+	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/4-local-event-tacobot-delete.json
+
+tests-local-force-delete:
+	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/5-local-event-tacobot-force-delete.json
 
 tests-deployed:
 	echo "not implemented"

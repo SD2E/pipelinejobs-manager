@@ -102,6 +102,9 @@ def convert_transcriptic(schema_file, input_file, verbose=True, output=True, out
         # time
         time_val = transcriptic_sample[SampleConstants.TIMEPOINT]
 
+        # determinstically derive measurement ids from sample_id + counter (local to sample)
+        measurement_counter = 1
+
         for file in transcriptic_sample[SampleConstants.FILES]:
             measurement_doc = {}
 
@@ -109,9 +112,21 @@ def convert_transcriptic(schema_file, input_file, verbose=True, output=True, out
 
             measurement_doc[SampleConstants.FILES] = []
 
-            measurement_doc[SampleConstants.MEASUREMENT_TYPE] = file[SampleConstants.M_TYPE]
+            measurement_type = file[SampleConstants.M_TYPE]
+            measurement_doc[SampleConstants.MEASUREMENT_TYPE] = measurement_type
 
-            measurement_doc[SampleConstants.MEASUREMENT_ID] = namespace_measurement_id(measurement_id, output_doc[SampleConstants.LAB])
+            # TX can repeat measurement ids
+            # across multiple measurement types, append
+            # the type so we have a distinct id per actual grouped measurement
+            typed_measurement_id = '.'.join([measurement_id, measurement_type])
+
+            # generate a measurement id unique to this sample
+            measurement_doc[SampleConstants.MEASUREMENT_ID] = namespace_measurement_id(".".join([sample_doc[SampleConstants.SAMPLE_ID], str(measurement_counter)]), output_doc[SampleConstants.LAB])
+
+            # record a measurement grouping id to find other linked samples and files
+            measurement_doc[SampleConstants.MEASUREMENT_GROUP_ID] = namespace_measurement_id(typed_measurement_id, output_doc[SampleConstants.LAB])
+
+            measurement_counter = measurement_counter + 1
 
             file_name = file[SampleConstants.M_NAME]
             file_type = SampleConstants.infer_file_type(file_name)

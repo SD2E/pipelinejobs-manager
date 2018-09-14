@@ -22,7 +22,7 @@ class PipelineStore(BaseStore):
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
         self.coll = self.db[coll]
-        self.CREATE_OPTIONAL_KEYS = ('accepts', 'produces', 'name', 'description', 'collection_level', 'processing_level')
+        self.CREATE_OPTIONAL_KEYS = ('accepts', 'produces', 'name', 'description', 'collections_levels', 'processing_levels')
         self._post_init()
 
     def update_properties(self, dbrec):
@@ -37,9 +37,9 @@ class PipelineStore(BaseStore):
 
     def create(self, components, **kwargs):
         DEFAULTS = {'accepts': [],
-                    'producess': [],
-                    'collection_level': 'measurement',
-                    'processing_level': '1'}
+                    'produces': [],
+                    'collections_levels': 'measurement',
+                    'processing_levels': '1'}
         pipe_rec = data_merge(DEFAULTS, kwargs)
         ts = current_time()
         doc = components_to_pipeline(components)

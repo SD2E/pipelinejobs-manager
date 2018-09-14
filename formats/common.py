@@ -93,6 +93,7 @@ class SampleConstants():
     MEASUREMENT_NAME = "measurement_name"
     SAMPLE_TMT_CHANNEL = "TMT_channel"
     MEASUREMENT_ID = "measurement_id"
+    MEASUREMENT_GROUP_ID = "measurement_group_id"
     MT_RNA_SEQ = "RNA_SEQ"
     MT_FLOW = "FLOW"
     MT_PLATE_READER = "PLATE_READER"

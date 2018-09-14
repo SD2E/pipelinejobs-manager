@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"title": "PipelinesJobDeleteAction",
+	"description": "Delete a Pipelines Job record",
+	"type": "object",
+	"properties": {
+		"uuid": {
+			"type": "string"
+		},
+		"action": {
+			"description": "specify a 'delete' management action",
+			"type": "string",
+			"enum": [
+				"delete"
+			]
+		},
+		"force": {
+			"description": "whether to actually force delete the job record",
+			"type": "boolean"
+		},
+		"__options": {
+			"description": "private key for passing runtime options to a pipeline"
+		}
+	},
+	"required": [
+		"uuid",
+		"action"
+	],
+	"additionalProperties": false
+}

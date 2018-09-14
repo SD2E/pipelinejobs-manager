@@ -2,53 +2,55 @@ import copy
 import inspect
 import json
 import os
+from pprint import pprint
 from attrdict import AttrDict
 from jsonschema import validate, FormatChecker
 from jsonschema import ValidationError
 from .fsm import JobStateMachine
-from ..identifiers.datacatalog_uuid import random_uuid5, text_uuid_to_binary
+from ..identifiers.datacatalog_uuid import random_uuid5, text_uuid_to_binary, binary_uuid_to_text, catalog_uuid
+from .utils import params_to_document, params_document_to_uuid
+from ..constants import UUID_NAMESPACE
+import uuid
+from bson.binary import Binary, UUID_SUBTYPE, OLD_UUID_SUBTYPE
+from .token import new_token, validate_token, InvalidToken
 
 class formatChecker(FormatChecker):
     def __init__(self):
         FormatChecker.__init__(self)
 
-class Job(AttrDict):
+class Job(dict):
     pass
 
 class DataCatalogJob(object):
-    def __init__(self, pipeline_uuid, job_def_dict):
+    def __init__(self, pipeline_uuid, job_doc={}):
 
-        self.uuid = random_uuid5()
-        self._document = job_def_dict
-        self.job = None
-        if isinstance(pipeline_uuid, str):
-            self.pipeline_uuid = text_uuid_to_binary(pipeline_uuid)
+        # UUID is based on (actor_id, data) - these are immutable once job has been created
+        # The underscore UUID forms are to facilitate display in Redash and interactive serach
+        if job_doc.get('uuid', None) is None:
+            doc = params_to_document({'actor_id': job_doc.get('actor_id'), 'data': job_doc.get('data')})
+            self._uuid = catalog_uuid(doc, binary=False)
+            self.uuid = catalog_uuid(doc, binary=True)
         else:
-            self.pipeline_uuid = pipeline_uuid
+            self.uuid = job_doc.get('uuid')
+            self._uuid = job_doc.get('_uuid')
 
-        HERE = os.path.abspath(inspect.getfile(self.__class__))
-        PARENT = os.path.dirname(HERE)
-        schema_path = os.path.join(PARENT, 'schema.json')
-        validation_schema = {}
-        try:
-            with open(schema_path) as schema:
-                validation_schema = json.loads(schema.read())
-        except Exception as e:
-            raise ValidationError('Failed to load job JSON schema', e)
-        # Validate the incoming job definition before setting up a FSM
-        try:
-            validate(self._document, validation_schema,
-                     format_checker=formatChecker())
-        except Exception as exc:
-            raise ValidationError(exc)
-        self.job = JobStateMachine(jobdef=job_def_dict)
+        if job_doc.get('pipeline_uuid', None) is None:
+            if isinstance(pipeline_uuid, str):
+                self._pipeline_uuid = pipeline_uuid
+                self.pipeline_uuid = text_uuid_to_binary(pipeline_uuid)
+            else:
+                 self.pipeline_uuid = job_doc.get('pipeline_uuid')
+                 self._pipeline_uuid = job_doc.get('_pipeline_uuid')
+
+        # self._document = job_doc
+        self.job = JobStateMachine(job_doc)
 
     def handle(self, event, opts={}):
         self.job.handle(event, opts=opts)
         return self
 
-    def history(self):
-        return self.job.history()
+    def get_history(self):
+        return self.job.get_history()
 
     def as_dict(self):
         pr = {}
@@ -57,7 +59,12 @@ class DataCatalogJob(object):
                 value = getattr(self, name)
                 if not name.startswith('__') and not inspect.ismethod(value):
                     pr[name] = value
-        pr['job'] = self.job.data
+
+        prj = self.job.as_dict()
+        for name, value in prj.items():
+            if not name.startswith('__') and not inspect.ismethod(value):
+                pr[name] = value
+        pr['status'] = pr['status'].upper()
         return Job(pr)
 
 

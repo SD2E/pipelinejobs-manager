@@ -1,5 +1,8 @@
+import base64
 import uuid
-from bson.binary import Binary, UUID_SUBTYPE, OLD_UUID_SUBTYPE
+import bson
+from bson.codec_options import CodecOptions
+from bson.binary import Binary, UUID_SUBTYPE, OLD_UUID_SUBTYPE, STANDARD
 from ..constants import Constants
 
 __all__ = ["generate", "mock", "validate", "catalog_uuid", "text_uuid_to_binary"]
@@ -46,6 +49,13 @@ def text_uuid_to_binary(text_uuid):
         return Binary(uuid.UUID(text_uuid).bytes, OLD_UUID_SUBTYPE)
     except Exception as exc:
         raise ValueError('Failed to convert text UUID to binary', exc)
+
+def binary_uuid_to_text(binary_uuid):
+    try:
+        print(type(binary_uuid))
+        return str(uuid.UUID(bytes=binary_uuid))
+    except Exception as exc:
+        raise ValueError('Failed to convert binary UUID to string', exc)
 
 def validate_uuid5(uuid_string, permissive=False):
     """

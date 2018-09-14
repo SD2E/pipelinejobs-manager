@@ -4,7 +4,7 @@ logs:
   level: DEBUG
   token: ~
 catalogstore:
-  debug: true
+  debug: false
   uuid5_namespace: sd2e.org
   storage_system: data-sd2e-community
   base: /work/projects/SD2E-Community/prod/data
