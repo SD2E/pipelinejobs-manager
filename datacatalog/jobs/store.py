@@ -100,7 +100,7 @@ class JobStore(BaseStore):
 
             # token is job-specific
             try:
-                validate_token(token, pipeline_uuid=job_rec['_pipeline_uuid'], job_uuid=job_rec['_uuid'], salt=job_rec['_salt'], permissive=False)
+                validate_token(token, pipeline_uuid=job_rec['_pipeline_uuid'], job_uuid=job_rec['_uuid'], salt=job_rec['__salt'], permissive=False)
             except InvalidToken as exc:
                 raise JobUpdateFailure(exc)
 

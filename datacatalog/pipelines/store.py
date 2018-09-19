@@ -2,10 +2,9 @@ import uuid
 from ..basestore import *
 from ..identifiers.datacatalog_uuid import text_uuid_to_binary
 from .utils import components_to_pipeline, pipeline_to_uuid
-
+from .token import new_token, generate_salt, validate_token, InvalidToken
 class PipelineCreateFailure(CatalogUpdateFailure):
     pass
-
 
 class DuplicatePipelineError(CatalogUpdateFailure):
     pass
@@ -52,17 +51,20 @@ class PipelineStore(BaseStore):
                                   'revision': 0}
         pipe_rec['_visible'] = True
         pipe_rec['_uuid'] = _doc_uuid
+        pipe_rec['__salt'] = generate_salt()
 
         try:
             result = self.coll.insert_one(pipe_rec)
-            return self.coll.find_one({'_id': result.inserted_id})
+            result_job = self.coll.find_one({'_id': result.inserted_id})
+            result_job['token'] = new_token(result_job)
+            return result_job
         except DuplicateKeyError:
             raise DuplicatePipelineError('A pipeline with this distinct set of components already exists.')
         except Exception as exc:
             raise PipelineUpdateFailure(
                 'Failed to create pipeline record', exc)
 
-    def update(self, pipeline_uuid, components=None, input_types=None, output_types=None, data_processing_level=None, data_collection_level=None, name=None, description=None):
+    def update(self, pipeline_uuid, token, components=None, input_types=None, output_types=None, data_processing_level=None, data_collection_level=None, name=None, description=None):
         ts = current_time()
         if components is not None:
             # TODO: Transparently hand off to create_pipeline
@@ -74,6 +76,13 @@ class PipelineStore(BaseStore):
         pipe_rec = self.coll.find_one({'uuid': pipeline_uuid})
         if pipe_rec is None:
             raise PipelineUpdateFailure('No pipeline with UUID {}'.format(pipeline_uuid))
+
+        # token is pipeline-specific
+        try:
+            validate_token(token, pipeline_uuid=pipe_rec['_uuid'],
+            salt=pipe_rec['__salt'], permissive=False)
+        except InvalidToken as exc:
+            raise PipelineUpdateFailure(exc)
 
         new_pipe_rec = {'uuid': pipeline_uuid,
                         'accepts': input_types,
@@ -92,12 +101,26 @@ class PipelineStore(BaseStore):
             raise PipelineUpdateFailure(
                 'Failed to update pipeline {}'.format(pipeline_uuid), exc)
 
-    def delete(self, uuid, force=False):
+    def delete(self, uuid, token, force=False):
         """Delete a pipeline by UUID
         By default the record is marked as invisible. If force==True, the
         actual record is deleted (but this is bad for provenance)."""
         if isinstance(uuid, str):
             uuid = text_uuid_to_binary(uuid)
+
+        # fetch current record
+        pipe_rec = self.coll.find_one({'uuid': uuid})
+        if pipe_rec is None:
+            raise PipelineUpdateFailure(
+                'No pipeline with UUID {}'.format(uuid))
+
+        # token is pipeline-specific
+        try:
+            validate_token(token, pipeline_uuid=pipe_rec['_uuid'],
+            salt=pipe_rec['__salt'], permissive=False)
+        except InvalidToken as exc:
+            raise PipelineUpdateFailure(exc)
+
         if force:
             try:
                 return self.coll.remove({'uuid': uuid})

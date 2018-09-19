@@ -6,6 +6,7 @@ ABACO_DEPLOY_OPTS ?= "-p"
 SCRIPT_DIR ?= "scripts"
 PREF_SHELL ?= "bash"
 ACTOR_ID ?=
+GITREF=$(shell git rev-parse --short HEAD)
 
 .PHONY: tests container tests-local tests-reactor tests-deployed datacatalog formats
 .SILENT: tests container tests-local tests-reactor tests-deployed datacatalog formats
@@ -19,7 +20,7 @@ datacatalog: formats
 	if [ -d ../python-datacatalog/datacatalog ]; then rm -rf datacatalog; cp -R ../python-datacatalog/datacatalog .; fi
 
 image: datacatalog
-	abaco deploy -R $(ABACO_DEPLOY_OPTS)
+	abaco deploy -R -t $(GITREF) $(ABACO_DEPLOY_OPTS)
 
 shell:
 	bash $(SCRIPT_DIR)/run_container_process.sh bash
@@ -64,7 +65,7 @@ clean-tests:
 	rm -rf .hypothesis .pytest_cache __pycache__ */__pycache__ tmp.* *junit.xml
 
 deploy:
-	abaco deploy $(ABACO_DEPLOY_OPTS) -U $(ACTOR_ID)
+	abaco deploy -t $(GITREF) $(ABACO_DEPLOY_OPTS) -U $(ACTOR_ID)
 
 postdeploy:
 	bash tests/run_after_deploy.sh

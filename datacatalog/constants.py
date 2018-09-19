@@ -14,6 +14,7 @@ class Constants():
     ABACO_HASHIDS_SALT = 'eJa5wZlEX4eWU'
     MOCK_IDS_SALT = '97JFXMGWBDaFWt8a4d9NJR7z3erNcAve'
     JOBS_TOKEN_SALT = '3MQXA&jk/-![^7+3'
+    PIPELINES_TOKEN_SALT = 'h?b"xM6!QH`86qU3'
 class Enumerations():
     LABPATHS = ('ginkgo', 'transcriptic', 'biofab', 'emerald')
     LABNAMES = ('Ginkgo', 'Transcriptic', 'UW_BIOFAB', 'Emerald')
