@@ -10,16 +10,15 @@ Actions:
 * event - Send a state-change event to a given job by its UUID. Schema: `event.jsonschema`
 * delete - Delete a job (actually hides it unless forced)
 
-The actor can also respond to POST callbacks, for instance from the Agave jobs
-service. In this case, it can process the the message body as job "data" and
-reads the job UUID and event from url parameters. A jobs callback is detected
-using the `agavejobs.jsonschema`.
+The Pipeline Jobs Manager can respond to POST callbacks sent by Agave jobs. In
+this case, it will process the the message body as job "data" and reads the
+job UUID, authorization token, and event from url parameters.
 
 Actor Messages
 --------------
 
-A Pipelines actor may update the status of its own job by sending an event
-message status to this actor with the following schema:
+A Pipelines-enabled actor may update the status of a job by sending an *event*
+message status to the Pipeline Jobs Manager actor with the following schema:
 
 ```json
 {
@@ -35,11 +34,17 @@ message status to this actor with the following schema:
 		"event": {
 			"description": "a valid Pipeline Job state-change event",
 			"type": "string",
-			"enum": ["run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
+			"enum": ["run", "update", "fail", "finish"]
 		},
 		"details": {
 			"description": "an object containing additional context about the event (optional)",
 			"type": "object"
+		},
+		"token": {
+			"description": "an authorization token issued when the job was created",
+			"type": "string",
+			"minLength": 16,
+			"maxLength": 17
 		},
 		"__options": {
 			"type": "object",
@@ -50,11 +55,3 @@ message status to this actor with the following schema:
 	"additionalProperties": false
 }
 ```
-
-Agave Job Notifications
------------------------
-
-When this actor creates a job, it returns a webook, which must be incorporated
-into the notifications stanza for Agave jobs that it launches.
-
-https://api.sd2e.org/actors/v2/<THISACTOR>/messages?x-nonce=<Nonce>&event=<Event>&uuid=<JobId>

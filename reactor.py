@@ -53,7 +53,7 @@ def main():
 
     # Set up Store objects
     job_store = JobStore(mongodb=r.settings.mongodb,
-                         config=r.settings.catalogstore,
+                         config=r.settings.get('catalogstore', {}),
                          session=stores_session)
 
     r.logger.info('HANDLING {}...'.format(action))

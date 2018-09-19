@@ -3,24 +3,24 @@ debug: false
 logs:
   level: DEBUG
   token: ~
-catalogstore:
-  debug: false
-  uuid5_namespace: sd2e.org
-  storage_system: data-sd2e-community
-  base: /work/projects/SD2E-Community/prod/data
-  store: uploads/
-  root: uploads/
-  batch: 1000
-  collections:
-    updates: updates
-    fixity: datafiles
-    challenges: challenges
-    experiments: experiments
-    samples: samples
-    measurements: measurements
-    files: files
-    pipelines: pipelines
-    jobs: jobs
+# catalogstore:
+#   debug: false
+#   uuid5_namespace: sd2e.org
+#   storage_system: data-sd2e-community
+#   base: /work/projects/SD2E-Community/prod/data
+#   store: uploads/
+#   root: uploads/
+#   batch: 1000
+#   collections:
+#     updates: updates
+#     fixity: datafiles
+#     challenges: challenges
+#     experiments: experiments
+#     samples: samples
+#     measurements: measurements
+#     files: files
+#     pipelines: pipelines
+#     jobs: jobs
 mongodb:
   # host: 127.0.0.1
   # username: catalog
