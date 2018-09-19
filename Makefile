@@ -27,6 +27,9 @@ shell:
 
 tests: tests-pytest tests-local
 
+tests-integration:
+	true
+
 tests-pytest:
 	bash $(SCRIPT_DIR)/run_container_process.sh $(PYTHON) -m "pytest" $(PYTEST_DIR) $(PYTEST_OPTS)
 
