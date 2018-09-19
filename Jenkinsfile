@@ -13,7 +13,7 @@ pipeline {
         ACTOR_WORKERS = 4
         PYTEST_OPTS       = '-s -vvv'
         ABACO_DEPLOY_OPTS = ''
-        AGAVE_CACHE_DIR   = "${HOME}/credentials_cache/${CLIENT_PREFIX}-${BRANCH_NAME}-${BUILD_ID}"
+        AGAVE_CACHE_DIR   = "${HOME}/credentials_cache/${CLIENT_PREFIX}"
         AGAVE_JSON_PARSER = "jq"
         AGAVE_TENANTID    = "sd2e"
         AGAVE_APISERVER   = "https://api.sd2e.org"
