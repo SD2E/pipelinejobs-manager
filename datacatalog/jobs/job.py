@@ -12,7 +12,7 @@ from .utils import params_to_document, params_document_to_uuid
 from ..constants import UUID_NAMESPACE
 import uuid
 from bson.binary import Binary, UUID_SUBTYPE, OLD_UUID_SUBTYPE
-from .token import new_token, validate_token, InvalidToken
+from .token import new_token, validate_token, InvalidToken, generate_salt
 
 class formatChecker(FormatChecker):
     def __init__(self):
@@ -44,6 +44,7 @@ class DataCatalogJob(object):
 
         # self._document = job_doc
         self.job = JobStateMachine(job_doc)
+        self._salt = generate_salt()
 
     def handle(self, event, opts={}):
         self.job.handle(event, opts=opts)

@@ -4,7 +4,7 @@ from attrdict import AttrDict
 from jsonschema import ValidationError
 from pprint import pprint
 from reactors.runtime import Reactor, agaveutils
-from datacatalog.jobs import JobStore, JobCreateFailure, JobUpdateFailure
+from datacatalog.jobs import JobStore, JobCreateFailure, JobUpdateFailure, EventMappings
 from datacatalog.identifiers import datacatalog_uuid
 
 def main():
@@ -89,9 +89,13 @@ def main():
     cb_token = None
     if action == 'agavejobs':
         event_dict = {}
-        r.logger.info('AGAVEJOBS')
         try:
-            cb_event = r.context.get('event').lower()
+            cb_agave_status = r.context.get('status', None)
+            if cb_agave_status is not None:
+                cb_agave_status = cb_agave_status.upper()
+                cb_event = EventMappings.agavejobs.get(cb_agave_status, 'update')
+            if cb_event is None:
+                cb_event = r.context.get('event').lower()
             cb_uuid = r.context.get('uuid')
             cb_token = r.context('token')
         except Exception:

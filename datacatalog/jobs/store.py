@@ -5,24 +5,38 @@ from .job import DataCatalogJob, new_token, validate_token, InvalidToken
 from pprint import pprint
 from bson.binary import Binary, UUID_SUBTYPE, OLD_UUID_SUBTYPE
 import uuid
-class JobCreateFailure(Exception):
+
+class JobsGenericFailure(Exception):
     pass
 
-class JobUpdateFailure(Exception):
+class UnknownPipeline(JobsGenericFailure):
     pass
+
+class UnknownJob(JobsGenericFailure):
+    pass
+
+class JobCreateFailure(JobsGenericFailure):
+    pass
+
+
+class JobUpdateFailure(JobsGenericFailure):
+    pass
+
+
 class JobStore(BaseStore):
     """Manages creation and management of datacatalog.jobs records and states"""
 
     def __init__(self, mongodb, config, pipeline_store=None, session=None):
         super(JobStore, self).__init__(mongodb, config, session)
         coll = config['collections']['jobs']
+        coll_pipes = config['collections']['pipelines']
         if config['debug']:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
-        # Used for looking up references to pipeline IDs
-        self.pipelines = pipeline_store
         self.coll = self.db[coll]
-        self.CREATE_OPTIONAL_KEYS = ['data', 'session', 'binary_uuid', 'actor_id']
+        self.coll_db = self.db[coll_pipes]
+        self.CREATE_OPTIONAL_KEYS = [
+            'data', 'session', 'actor_id']
         self.EVENT_OPTIONAL_KEYS = ['data']
 
         self._post_init()
@@ -41,10 +55,9 @@ class JobStore(BaseStore):
         """
         DEFAULTS = {'data': {},
                     'session': None,
-                    'actor_id': None,
-                    'binary_uuid': True}
+                    'actor_id': None}
         # Validate pipeline_uuid
-        self.__validate_pipeline_id(pipeline_uuid)
+        self.validate_pipeline_id(pipeline_uuid)
         # Validate actor_id
         identifiers.abaco_hashid.validate(kwargs['actor_id'])
         job_data = data_merge(DEFAULTS, kwargs)
@@ -69,7 +82,7 @@ class JobStore(BaseStore):
         event_name:str - event to be processed (Must validate to JobStateMachine.events)
         token:str - validation token issued when the job was created
         Arguments:
-        options:dict - optional dict to pass to JobStateMachine event handler
+        data:dict - optional dict to pass to JobStateMachine event handler
         permissive:bool - ignore state and other Exceptions
         Returns:
         Boolean for successful handling of the event
@@ -85,9 +98,9 @@ class JobStore(BaseStore):
             if job_rec is None:
                 raise JobUpdateFailure('No job found with that UUID')
 
-            # Ensure the event is from the actor that created it
+            # token is job-specific
             try:
-                validate_token(token, pipeline_uuid=job_rec['_pipeline_uuid'], job_uuid=job_rec['_uuid'], actor_id=job_rec['actor_id'], permissive=False)
+                validate_token(token, pipeline_uuid=job_rec['_pipeline_uuid'], job_uuid=job_rec['_uuid'], salt=job_rec['_salt'], permissive=False)
             except InvalidToken as exc:
                 raise JobUpdateFailure(exc)
 
@@ -104,20 +117,20 @@ class JobStore(BaseStore):
         except Exception as exc:
             raise JobUpdateFailure('Failed up write job to database', exc)
 
-
-    def delete_job(self, job_uuid):
+    def delete_job(self, job_uuid, force=False):
         pass
-
-    def __validate_pipeline_id(self, pipeline_id):
-        # Is it a UUID5
-        try:
-            identifiers.datacatalog_uuid.validate(pipeline_id)
-        except Exception as exc:
-            raise exc
-        # FIXME: Check if it is known pipeline UUID via self.pipelines.query()
-        return True
 
     def __validate_job_def(self, job_def):
         # Noop for now
         return True
 
+    def validate_pipeline_id(self, pipeline_uuid):
+        try:
+            pipe = self.coll_db.find_one({'_uuid': pipeline_uuid})
+            if pipe is not None:
+                return True
+            else:
+                raise UnknownPipeline(
+                    'No pipeline exists with UUID {}'.format(str(pipeline_uuid)))
+        except Exception as exc:
+            raise Exception('Failed to confirm pipeline identifier', exc)

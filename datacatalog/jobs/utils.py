@@ -6,7 +6,7 @@ import json
 from .. import identifiers
 
 ARCHIVE_PATH_VERSIONS = ['v1']
-ARCHIVE_PATH_PREFIXES = ['products']
+ARCHIVE_PATH_PREFIXES = ['/products']
 
 def get_instance_directory(session=None):
     if session is None or len(session) < 4:
