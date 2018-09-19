@@ -3,6 +3,7 @@ import copy
 from slugify import slugify
 import datetime
 from .mongo import db_connection, ReturnDocument, UUID_SUBTYPE
+from .configs import CatalogStore
 from .utils import catalog_uuid, current_time, time_stamp, validate_file_to_schema
 from .dicthelpers import data_merge, dict_compare, filter_dict, json_diff, data_merge_diff
 from .constants import Constants, Mappings, Enumerations
@@ -12,11 +13,17 @@ class LogStoreError(CatalogError):
     pass
 
 class LogStore(object):
-    def __init__(self, mongodb, config, session=None):
+    def __init__(self, mongodb, config={}, session=None):
         self.db = db_connection(mongodb)
-        coll = config['collections']['updates']
-        if config['debug']:
+        if isinstance(config.get('debug', None), bool):
+            self.debug = config.get('debug')
+        else:
+            self.debug = False
+
+        coll = CatalogStore.collections['updates']
+        if self.debug:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
+
         self.name = coll
         self.coll = self.db[coll]
         self.session = session

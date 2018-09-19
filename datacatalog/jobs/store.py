@@ -28,18 +28,20 @@ class JobStore(BaseStore):
 
     def __init__(self, mongodb, config, pipeline_store=None, session=None):
         super(JobStore, self).__init__(mongodb, config, session)
-        coll = config['collections']['jobs']
-        coll_pipes = config['collections']['pipelines']
-        if config['debug']:
-            coll = '_'.join([coll, str(time_stamp(rounded=True))])
+        coll = self.collections.get('jobs')
+        coll_pipes = self.collections.get('pipelines')
+        if self.debug:
+            ts = time_stamp(rounded=True)
+            coll = '_'.join([coll, str(ts)])
+            coll_pipes = '_'.join([coll_pipes, str(ts)])
         self.name = coll
         self.coll = self.db[coll]
         self.coll_db = self.db[coll_pipes]
+        self._post_init()
         self.CREATE_OPTIONAL_KEYS = [
             'data', 'session', 'actor_id']
         self.EVENT_OPTIONAL_KEYS = ['data']
 
-        self._post_init()
 
     def create(self, pipeline_uuid, archive_path, **kwargs):
         """Create and return a new job instance
@@ -65,6 +67,7 @@ class JobStore(BaseStore):
         job_data['_visible'] = True
         # job definition gets validated in DataCatalogJob
         new_job = DataCatalogJob(pipeline_uuid, job_data)
+        print(new_job)
         try:
             result = self.coll.insert_one(new_job.as_dict())
             new_job = self.coll.find_one({'_id': result.inserted_id})
@@ -100,7 +103,7 @@ class JobStore(BaseStore):
 
             # token is job-specific
             try:
-                validate_token(token, pipeline_uuid=job_rec['_pipeline_uuid'], job_uuid=job_rec['_uuid'], salt=job_rec['__salt'], permissive=False)
+                validate_token(token, pipeline_uuid=job_rec['_pipeline_uuid'], job_uuid=job_rec['_uuid'], salt=job_rec['_salt'], permissive=False)
             except InvalidToken as exc:
                 raise JobUpdateFailure(exc)
 

@@ -44,7 +44,7 @@ class DataCatalogJob(object):
 
         # self._document = job_doc
         self.job = JobStateMachine(job_doc)
-        self.__salt = generate_salt()
+        self._salt = generate_salt()
 
     def handle(self, event, opts={}):
         self.job.handle(event, opts=opts)

@@ -14,15 +14,16 @@ class PipelineUpdateFailure(CatalogUpdateFailure):
 
 class PipelineStore(BaseStore):
     """Create and manage pipeline records"""
-    def __init__(self, mongodb, config, session=None):
+    def __init__(self, mongodb, config={}, session=None):
         super(PipelineStore, self).__init__(mongodb, config, session)
-        coll = config['collections']['pipelines']
-        if config['debug']:
+        coll = self.collections.get('pipelines')
+        if self.debug:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
         self.coll = self.db[coll]
-        self.CREATE_OPTIONAL_KEYS = ('accepts', 'produces', 'name', 'description', 'collections_levels', 'processing_levels')
         self._post_init()
+        self.CREATE_OPTIONAL_KEYS = (
+            'accepts', 'produces', 'name', 'description', 'collections_levels', 'processing_levels')
 
     def update_properties(self, dbrec):
         ts = current_time()
@@ -51,7 +52,7 @@ class PipelineStore(BaseStore):
                                   'revision': 0}
         pipe_rec['_visible'] = True
         pipe_rec['_uuid'] = _doc_uuid
-        pipe_rec['__salt'] = generate_salt()
+        pipe_rec['_salt'] = generate_salt()
 
         try:
             result = self.coll.insert_one(pipe_rec)
@@ -80,7 +81,7 @@ class PipelineStore(BaseStore):
         # token is pipeline-specific
         try:
             validate_token(token, pipeline_uuid=pipe_rec['_uuid'],
-            salt=pipe_rec['__salt'], permissive=False)
+            salt=pipe_rec['_salt'], permissive=False)
         except InvalidToken as exc:
             raise PipelineUpdateFailure(exc)
 
@@ -117,7 +118,7 @@ class PipelineStore(BaseStore):
         # token is pipeline-specific
         try:
             validate_token(token, pipeline_uuid=pipe_rec['_uuid'],
-            salt=pipe_rec['__salt'], permissive=False)
+            salt=pipe_rec['_salt'], permissive=False)
         except InvalidToken as exc:
             raise PipelineUpdateFailure(exc)
 

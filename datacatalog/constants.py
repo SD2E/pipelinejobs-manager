@@ -9,6 +9,7 @@ class Constants():
     MOCK_DNS_FOR_NAMESPACE = 'sd2e.club'
     UUID_NAMESPACE = uuid3(NAMESPACE_DNS, DNS_FOR_NAMESPACE)
     UUID_MOCK_NAMESPACE = uuid3(NAMESPACE_DNS, MOCK_DNS_FOR_NAMESPACE)
+    UPLOADS_ROOT = 'uploads'
     STORAGE_ROOT = 'uploads/'
     PRODUCTS_ROOT = 'products'
     ABACO_HASHIDS_SALT = 'eJa5wZlEX4eWU'

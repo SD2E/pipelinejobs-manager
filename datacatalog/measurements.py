@@ -8,8 +8,8 @@ class MeasurementStore(BaseStore):
 
     def __init__(self, mongodb, config, session=None):
         super(MeasurementStore, self).__init__(mongodb, config, session)
-        coll = config['collections']['measurements']
-        if config['debug']:
+        coll = self.collections.get('measurements')
+        if self.debug:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
         self.coll = self.db[coll]

@@ -3,6 +3,7 @@ import copy
 from slugify import slugify
 import datetime
 from .mongo import db_connection, ReturnDocument, UUID_SUBTYPE, ASCENDING, DuplicateKeyError
+from .configs import CatalogStore
 from .logstore import LogStore, LogStoreError
 from .utils import catalog_uuid, text_uuid_to_binary, current_time, time_stamp, validate_file_to_schema
 from .dicthelpers import data_merge, dict_compare, filter_dict, json_diff, data_merge_diff
@@ -11,15 +12,23 @@ from .exceptions import *
 from .posixhelpers import *
 
 class BaseStore(object):
-    def __init__(self, mongodb, config, session=None):
+    def __init__(self, mongodb, config={}, session=None):
+        if isinstance(config.get('debug', None), bool):
+            self.debug = config.get('debug')
+        else:
+            self.debug = False
+
         self.db = db_connection(mongodb)
-        self.base = config['base']
-        self.store = config['root']
-        self.agave_system = config['storage_system']
+        self.collections = CatalogStore.collections
+
+        self.agave_system = CatalogStore.agave_storage_system
+        self.base = CatalogStore.agave_root_dir
+        self.store = CatalogStore.store_dir + '/'
         self.coll = None
         self.name = None
         self.difflog = LogStore(mongodb, config, session)
         self.session = session
+
 
     def _post_init(self):
         if self.coll is not None:

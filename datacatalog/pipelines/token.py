@@ -12,7 +12,7 @@ def generate_salt():
 
 def new_token(pipe_def):
     token_data = {'pipeline_uuid': pipe_def['_uuid'],
-                  'salt': pipe_def['__salt']}
+                  'salt': pipe_def['_salt']}
     return get_token(**token_data)
 
 

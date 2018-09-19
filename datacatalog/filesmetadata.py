@@ -9,8 +9,8 @@ class FileMetadataStore(BaseStore):
     to files via that UUID"""
     def __init__(self, mongodb, config, session=None):
         super(FileMetadataStore, self).__init__(mongodb, config, session)
-        coll = config['collections']['files']
-        if config['debug']:
+        coll = self.collections.get('files')
+        if self.debug:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
         self.coll = self.db[coll]

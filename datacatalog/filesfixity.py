@@ -8,8 +8,8 @@ class FileFixityStore(BaseStore):
     Records are linked with FilesMetadataStore via same uuid for a given filename"""
     def __init__(self, mongodb, config):
         super(FileFixityStore, self).__init__(mongodb, config)
-        coll = config['collections']['fixity']
-        if config['debug']:
+        coll = self.collections.get('fixity')
+        if self.debug:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
         self.coll = self.db[coll]

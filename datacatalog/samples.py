@@ -8,8 +8,8 @@ class SampleStore(BaseStore):
 
     def __init__(self, mongodb, config, session=None):
         super(SampleStore, self).__init__(mongodb, config, session)
-        coll = config['collections']['samples']
-        if config['debug']:
+        coll = self.collections.get('samples')
+        if self.debug:
             coll = '_'.join([coll, str(time_stamp(rounded=True))])
         self.name = coll
         self.coll = self.db[coll]
