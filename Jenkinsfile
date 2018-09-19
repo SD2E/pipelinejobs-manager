@@ -8,9 +8,9 @@ pipeline {
     }
     environment {
         CLIENT_PREFIX     = "pipeline-jobs-manager"
-        ACTOR_ID_PROD     = ''
-        ACTOR_ID_STAGING  = ''
-        ACTOR_WORKERS = 1
+        ACTOR_ID_PROD     = 'G56vjoAVzGkkq'
+        ACTOR_ID_STAGING  = 'G56vjoAVzGkkq'
+        ACTOR_WORKERS = 4
         PYTEST_OPTS       = '-s -vvv'
         ABACO_DEPLOY_OPTS = ''
         AGAVE_CACHE_DIR   = "${HOME}/credentials_cache/${CLIENT_PREFIX}-${BRANCH_NAME}-${BUILD_ID}"
