@@ -26,8 +26,8 @@ mongodb:
   # username: catalog
   # password: catalog
   port: 27020
-  database: catalog_dev
-  host: data-catalog.sd2e.org
+  database: catalog
+  host: catalog.sd2e.org
   username: catalog
   password: ~
 storagesystems:
