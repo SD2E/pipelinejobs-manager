@@ -13,13 +13,11 @@ GITREF=$(shell git rev-parse --short HEAD)
 
 all: image
 
-formats:
-	if [ -d ../etl-pipeline-support/formats ]; then rm -rf formats; cp -R ../etl-pipeline-support/formats .; fi
-
 datacatalog: formats
 	if [ -d ../python-datacatalog/datacatalog ]; then rm -rf datacatalog; cp -R ../python-datacatalog/datacatalog .; fi
 
-image: datacatalog
+
+image:
 	abaco deploy -R -t $(GITREF) $(ABACO_DEPLOY_OPTS)
 
 shell:
@@ -72,8 +70,3 @@ deploy:
 
 postdeploy:
 	bash tests/run_after_deploy.sh
-
-samples:
-	cp ../etl-pipeline-support/output/ginkgo/Novelchassis_Nand_gate_samples.json tests/data/samples-ginkgo.json
-	cp ../etl-pipeline-support/output/biofab/provenance_dump.json tests/data/samples-biofab.json
-	cp ../etl-pipeline-support/output/transcriptic/samples.json tests/data/samples-transcriptic.json

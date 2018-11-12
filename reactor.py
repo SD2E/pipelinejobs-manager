@@ -5,7 +5,6 @@ from jsonschema import ValidationError
 from pprint import pprint
 from reactors.runtime import Reactor, agaveutils
 from datacatalog.jobs import JobStore, JobCreateFailure, JobUpdateFailure, EventMappings
-from datacatalog.identifiers import datacatalog_uuid
 
 def main():
 

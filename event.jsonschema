@@ -11,7 +11,7 @@
 		"event": {
 			"description": "a valid Pipeline Job state-change event",
 			"type": "string",
-			"enum": ["run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
+			"enum": ["update", "run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
 		},
 		"data": {
 			"description": "an object containing additional context about the event (optional)",
