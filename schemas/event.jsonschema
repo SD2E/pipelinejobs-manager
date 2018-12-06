@@ -1,0 +1,29 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "PipelineJobEvent",
+	"description": "A state-change event for a PipelineJob",
+	"type": "object",
+	"properties": {
+		"uuid": {
+			"description": "The PipelineJob UUID",
+			"type": "string"
+		},
+		"name": {
+			"description": "A Pipeline Job state-change event",
+			"type": "string",
+			"enum": ["update", "run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
+		},
+		"data": {
+			"description": "Additional information to store with the event (optional)",
+			"type": "object"
+		},
+		"token": {
+			"description": "Authorization token (issued when the job was created)",
+			"type": "string",
+			"minLength": 16,
+			"maxLength": 17
+		}
+	},
+	"required": ["uuid", "name"],
+	"additionalProperties": false
+}

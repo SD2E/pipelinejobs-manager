@@ -1,0 +1,35 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "PipelineJobDeleteAction",
+	"description": "Delete a PipelineJob record",
+	"type": "object",
+	"properties": {
+		"uuid": {
+			"description": "The PipelineJob UUID",
+			"type": "string"
+		},
+		"action": {
+			"description": "A management action",
+			"type": "string",
+			"enum": [
+				"delete"
+			]
+		},
+		"force": {
+			"description": "Whether to hide or force-delete the job",
+			"type": "boolean",
+			"value": true
+		},
+		"token": {
+			"description": "An authorization token issued when the job was created",
+			"type": "string",
+			"minLength": 16,
+			"maxLength": 17
+		}
+	},
+	"required": [
+		"uuid",
+		"action"
+	],
+	"additionalProperties": false
+}

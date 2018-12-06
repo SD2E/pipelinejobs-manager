@@ -5,11 +5,12 @@ logs:
   level: DEBUG
   token: ~
 mongodb:
-  database: catalog
-  host: catalog.sd2e.org
-  password: ~
-  port: 27020
+  host: catalog
+  port: 27017
   username: catalog
+  password: catalog
+  database: catalog_local
+
 only_extant_files: false
 storagesystems:
   data-sd2e-community:

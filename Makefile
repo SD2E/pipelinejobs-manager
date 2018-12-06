@@ -8,14 +8,18 @@ PREF_SHELL ?= "bash"
 ACTOR_ID ?=
 GITREF=$(shell git rev-parse --short HEAD)
 
+TEST_JOB_UUID ?= "1073f4ff-c2b9-5190-bd9a-e6a406d9796a"
+TEST_JOB_TOKEN ?= "c2f338f3e79e4f86"
+TEST_JOB_STATUS ?= "RUNNING"
+DOCKER_NETWORK ?= --network docker_mongotest
+
 .PHONY: tests container tests-local tests-reactor tests-deployed datacatalog formats
 .SILENT: tests container tests-local tests-reactor tests-deployed datacatalog formats
 
 all: image
 
 datacatalog: formats
-	if [ -d ../python-datacatalog/datacatalog ]; then rm -rf datacatalog; cp -R ../python-datacatalog/datacatalog .; fi
-
+	if [ -d ../python-datacatalog ]; then rm -rf python-datacatalog; cp -R ../python-datacatalog .; fi
 
 image:
 	abaco deploy -R -t $(GITREF) $(ABACO_DEPLOY_OPTS)
@@ -42,8 +46,8 @@ tests-local-run:
 tests-local-fail:
 	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/3-local-event-tacobot-fail.json
 
-tests-local-agave-run:
-	DOCKER_ENVS_SET="-e event=run -e uuid=b485aa21-c714-5cc7-89f5-44a8427ff38a -e token=c2f338f3e79e4f86" bash $(SCRIPT_DIR)/run_container_message.sh tests/data/2-local-event-tacobot-agave-run.json
+tests-local-callback:
+	DOCKER_ENVS_SET="${DOCKER_NETWORK} -e status=$(TEST_JOB_STATUS) -e uuid=$(TEST_JOB_UUID) -e token=$(TEST_JOB_TOKEN)" bash $(SCRIPT_DIR)/run_container_message.sh tests/data/2-local-event-tacobot-agave-update.json
 
 tests-local-finish:
 	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/3-local-event-tacobot-finish.json

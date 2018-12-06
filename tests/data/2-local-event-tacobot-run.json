@@ -1,6 +1,8 @@
 {
     "uuid": "ab30fa5a-33b6-57bd-b57b-7375b97bedef",
-    "data": {"arbitrary": "key value data"},
-    "event": "run",
+    "data": {
+        "arbitrary": "key value data"
+    },
+    "name": "run",
     "token": "0dc73dc3ff39b49a"
 }

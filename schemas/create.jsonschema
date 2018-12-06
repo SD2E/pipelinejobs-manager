@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "PipelineJobAction",
+	"description": "Directly create a new PipelineJob",
+	"type": "object",
+	"properties": {
+		"pipeline_uuid": {
+			"description": "UUID referring to a registered, active Pipeline",
+			"type": "string"
+		},
+		"archive_path": {
+			"description": "Path to the job's outputs, relative to the products store",
+			"type": "string"
+		},
+		"data": {
+			"description": "Run-time parameterization of the job",
+			"type": "object"
+		},
+		"session": {
+			"description": "Short alphanumeric string for correlating events",
+			"type": "string"
+		},
+		"__options": {
+			"type": "object",
+			"description": "Object for passing runtime options to a pipeline (private)"
+		}
+	},
+	"required": ["pipeline_uuid", "archive_path", "data"],
+	"additionalProperties": false
+}
