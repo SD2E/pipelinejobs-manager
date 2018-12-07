@@ -98,3 +98,6 @@ postdeploy:
 
 nonce:
 	bash scripts/nonces-new.sh
+
+nonces:
+	bash scripts/nonces-list.sh
