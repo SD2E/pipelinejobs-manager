@@ -1,0 +1,48 @@
+{
+    "name": "Novel Chassis RNAseq Pipeline (E. coli MG1655) Q42018",
+    "id": "urrutia-novel_chassis_app-0.1.0",
+    "description": "Aligns with BWA to a strain specific genome and generates QC metrics for pre-processed RNA-seq data",
+    "components": [
+        {
+            "id": "urrutia-novel_chassis_app-0.1.0",
+            "inputs": {},
+            "parameters": {
+                "path_read1": "*R1*.fastq.gz",
+                "path_read2": "*R2*.fastq.gz",
+                "path_fasta": "/reference/novel_chassis/uma_refs/:strain:/:strain:.fa",
+                "path_gff": "/reference/novel_chassis/uma_refs/amin_genes.gff",
+                "path_interval_file": "/reference/novel_chassis/uma_refs/:strain:/:strain:.interval_list",
+                "path_ref_flat": "/reference/novel_chassis/uma_refs/modified.ecoli.MG1655.refFlat.txt",
+                "path_dict_file": "/reference/novel_chassis/uma_refs/:strain:/:strain:.dict",
+                "CONTAINER_IMAGE": "sd2e/novel_chassis_app:0.1.0"
+            }
+        }
+    ],
+    "collections_levels": [
+        "experiment",
+        "sample",
+        "measurement"
+    ],
+    "pipeline_type": "primary-etl",
+    "processing_levels": [
+        "1",
+        "2"
+    ],
+    "accepts": [
+        "FASTQ",
+        "FASTA",
+        "GFF"
+    ],
+    "produces": [
+        "FASTQ",
+        "TSV",
+        "BAM",
+        "HTML",
+        "PLAIN",
+        "PDF",
+        "VCF",
+        "SAM",
+        "BAI",
+        "MD5"
+    ]
+}

@@ -1,0 +1,21 @@
+git+https://github.com/TACC/agavepy.git@0_7_4#egg=agavepy
+git+https://github.com/Julian/jsonschema@v3.0.0a3#egg=jsonschema
+PyMongo==3.7.1
+PyYAML==3.12
+python-slugify>=1.2.5
+jsondiff>=1.1.2
+transitions>=0.6.8
+attrdict>=2.0.0
+hashids>=1.2.0
+petname>=2.2
+pyxdg>=0.26
+tacconfig>=0.5.2
+google>=2.0.1
+google-api-python-client>=1.7.4
+validators
+arrow
+gitpython
+filetype
+git+https://github.com/SD2E/python-datacatalog.git@composed_schema
+# jsonschema>=2.6.0
+# agavepy==0.7.4

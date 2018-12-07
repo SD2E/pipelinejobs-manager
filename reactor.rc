@@ -1,10 +1,10 @@
 # Reactor mandatory settings
-REACTOR_NAME=pipeline-jobs-manager
+REACTOR_NAME=pipeline-jobs-manager:staging
 # REACTOR_DESCRIPTION=
 REACTOR_ALIAS=pipeline_jobs_manager
 
 # Docker settings
 DOCKER_HUB_ORG=sd2e
 DOCKER_IMAGE_TAG=pipeline_jobs_manager
-DOCKER_IMAGE_VERSION=0.0.6
+DOCKER_IMAGE_VERSION=0.0.7
 DOCKER_USE_COMMIT_HASH=1

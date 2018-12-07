@@ -51,7 +51,7 @@ def main():
     rx.logger.debug('SCHEMA DETECTED: {}'.format(action))
 
     store = PipelineJobStore(mongodb=rx.settings.mongodb)
-    rx.logger.debug('Verify database: {}'.format(store.db.list_collection_names()))
+    # rx.logger.debug('Verify database: {}'.format(store.db.list_collection_names()))
 
     # Event processor
     cb_token = None
@@ -62,7 +62,8 @@ def main():
             # This assumes a callback URL that sends the Agave job status
             # as url parameter 'status', which is the default behavior
             # baked into the PipelineJobs system
-            cb_agave_status = rx.context.get('status', None)
+            cb_agave_status = m.get('status', rx.context.get('status', None))
+            # cb_agave_status = rx.context.get('status', None)
             rx.logger.debug('agave_status: {}'.format(cb_agave_status))
             if cb_agave_status is not None:
                 cb_agave_status = cb_agave_status.upper()
@@ -94,6 +95,8 @@ def main():
                 up_job['uuid'], up_job['state']))
         except Exception as exc:
             rx.on_failure('Event not processed', exc)
+
+    # TODO: Implement support for generic schema. Must be last one evaluated!
 
     # # allow override of settings
     # if '__options' in m:

@@ -5,11 +5,8 @@ logs:
   level: DEBUG
   token: ~
 mongodb:
-  host: catalog
-  port: 27017
-  username: catalog
-  password: catalog
-  database: catalog_local
+  authn: ~
+  database: catalog_test
 
 only_extant_files: false
 storagesystems:
