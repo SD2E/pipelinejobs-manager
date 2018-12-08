@@ -44,6 +44,7 @@ def main():
             except Exception as exc:
                 print('Validation error: {}'.format(exc))
         if action is None:
+            pprint(m)
             raise ValidationError('Message did not match any known schema')
     except Exception as vexc:
         rx.on_failure('Failed to process message', vexc)
