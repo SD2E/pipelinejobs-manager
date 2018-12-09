@@ -19,3 +19,4 @@ filetype
 git+https://github.com/SD2E/python-datacatalog.git@composed_schema
 # jsonschema>=2.6.0
 # agavepy==0.7.4
+doc8
