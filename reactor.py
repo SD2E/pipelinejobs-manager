@@ -69,6 +69,8 @@ def main():
     cb_job_uuid = rx.context.get('uuid', None)
     cb_token = rx.context.get('token', 'null')
     cb_note = rx.context.get('note', 'Event had no JSON payload')
+    # Accomodate 'status' which is what Agave jobs know about
+    cb_agave_status = rx.context.get('status', None)
     cb_data = {'note': cb_note}
 
     # TODO - Allow 'message=URLENCODEDSTRING' to set a value in cb_data
@@ -82,21 +84,24 @@ def main():
             # This assumes a callback URL that sends the Agave job status
             # as url parameter 'status', which is the default behavior
             # baked into the PipelineJobs system
-            cb_agave_status = m.get('status', rx.context.get('status', None))
+            cb_agave_status = m.get('status', cb_agave_status)
             rx.logger.debug('agave_status: {}'.format(cb_agave_status))
             if cb_agave_status is not None:
                 cb_agave_status = cb_agave_status.upper()
-                # Map any unknown state to update and store it
-                cb_event_name = AgaveEvents.agavejobs.get(
-                    cb_agave_status, 'update')
-                rx.logger.debug('event_name: {}'.format(cb_event_name))
-
+                # # Map any unknown state to update and store it
+                # cb_event_name = AgaveEvents.agavejobs.get(
+                #     cb_agave_status, 'update')
         except Exception as exc:
             rx.on_failure('Agave callback POST was had missing or invalid parameters', exc)
 
         # Push a slightly minified form of the Agave job POST into data
         cb_data = minify_job_dict(dict(m))
-        # Process it as normal
+
+    # If no event name was received but we do have an agave_status, use that
+    if cb_event_name is None and cb_agave_status is not None:
+        cb_event_name = AgaveEvents.agavejobs.get(cb_agave_status, 'update')
+        rx.logger.debug('Status: {} => Event: {}'.format(
+            cb_agave_status, cb_event_name))
 
     # This handler should go after all schema-informed handler code
     #
