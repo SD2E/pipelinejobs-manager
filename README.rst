@@ -45,21 +45,23 @@ form ``https://<tenantUrl>/actors/v2/<actorId>/messages``.
 Sending State via URL Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``token``, ``uuid``, and ``name`` fields can be sent as URL parameters of
-an HTTP POST, so long as the body of the POST is valid JSON. In this case, the
-JSON will be treated as ``data`` and attached to the job's history. The example
-from above could be replicated with URL parameters like so:
+The ``uuid``, and ``event``, ``token`` fields can be sent as URL parameters in
+an HTTP POST. An extra ``note`` can be sent, which will be used to populate the
+event's ``data`` key if no other valid JSON is posted with the request.
+Otherwise, the contents of the POST body will be parsed as JSON and processed
+as the event's ``data`` key. The example from above could be replicated using
+only URL parameters like so:
 
 .. code-block:: shell
 
     curl -XPOST --data '{"arbitrary": "key value data"}' \
         https://<tenantUrl>/actors/v2/<actorId>/messages?uuid=1073f4ff-c2b9-5190-bd9a-e6a406d9796a&\
-        name=finish&token=0dc73dc3ff39b49a
+        event=finish&token=0dc73dc3ff39b49a
 
 Managing PipelineJobs
 ---------------------
 
-Jobs can also be managed using posted JSON documents. At present, **delete** is
+Jobs can be managed via formatted JSON documents. Presently, **delete** is
 the only action supported. To delete a ``PipelineJob``, a message in the
 ``PipelineJobDeleteAction`` is POSTED to a ``PipelineJobManager`` actor.
 Here is an example that deletes job ``10715620-ae90-5b92-bf4e-fbd491c21e03``

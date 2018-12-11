@@ -9,9 +9,9 @@
 			"type": "string"
 		},
 		"name": {
-			"description": "A Pipeline Job state-change event",
+			"description": "A PipelineJob state event",
 			"type": "string",
-			"enum": ["update", "run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
+			"enum": ["update", "resource", "run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
 		},
 		"data": {
 			"description": "Additional information to store with the event (optional)",

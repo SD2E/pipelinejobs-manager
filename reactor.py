@@ -32,7 +32,7 @@ def main():
             pass
 
 #    ['event', 'agavejobs', 'create', 'delete']
-    action = None
+    action = 'emptypost'
     try:
         for a in ['agavejobs']:
             try:
@@ -45,26 +45,44 @@ def main():
                 print('Validation error: {}'.format(exc))
         if action is None:
             pprint(m)
-            raise ValidationError('Message did not match any known schema')
+            raise ValidationError('Message did not a known schema')
     except Exception as vexc:
         rx.on_failure('Failed to process message', vexc)
 
     rx.logger.debug('SCHEMA DETECTED: {}'.format(action))
 
     store = PipelineJobStore(mongodb=rx.settings.mongodb)
-    # rx.logger.debug('Verify database: {}'.format(store.db.list_collection_names()))
+        # rx.logger.debug('Verify database: {}'.format(store.db.list_collection_names()))
 
-    # Event processor
-    cb_token = None
-    cb_event_name = None
-    event_dict = dict()
+    # Event processing
+
+    # Get URL params from Abaco context
+    #
+    # These can be overridden by the event body or custom
+    # code implemented to process the message. This has a
+    # side effect of allowing the manager to process empty
+    # POST bodies so long as the right values are presented
+    # as URL params. To make it very clear what is going on,
+    # the event will be annotated with a 'note' indicating
+    # its provenance.
+    cb_event_name = rx.context.get('event', None)
+    cb_job_uuid = rx.context.get('uuid', None)
+    cb_token = rx.context.get('token', 'null')
+    cb_note = rx.context.get('note', 'Event had no JSON payload')
+    cb_data = {'note': cb_note}
+
+    # TODO - Allow 'message=URLENCODEDSTRING' to set a value in cb_data
+    event_dict = {'uuid': None,
+                  'name': None,
+                  'token': cb_token,
+                  'data': cb_data}
+
     if action == 'agavejobs':
         try:
             # This assumes a callback URL that sends the Agave job status
             # as url parameter 'status', which is the default behavior
             # baked into the PipelineJobs system
             cb_agave_status = m.get('status', rx.context.get('status', None))
-            # cb_agave_status = rx.context.get('status', None)
             rx.logger.debug('agave_status: {}'.format(cb_agave_status))
             if cb_agave_status is not None:
                 cb_agave_status = cb_agave_status.upper()
@@ -73,29 +91,31 @@ def main():
                     cb_agave_status, 'update')
                 rx.logger.debug('event_name: {}'.format(cb_event_name))
 
-            # Construct the event document
-            event_dict['name'] = cb_event_name
-            # Assumes callback URL contains pipelinejob UUID as 'uuid'
-            event_dict['uuid'] = rx.context.get('uuid')
-            rx.logger.debug('event_dict: {}'.format(event_dict))
-
-            # Assumes callback URL contains update token as 'token'
-            cb_token = rx.context.get('token', 'null')
-            rx.logger.debug('token: {}'.format(cb_token))
-
         except Exception as exc:
             rx.on_failure('Agave callback POST was had missing or invalid parameters', exc)
 
         # Push a slightly minified form of the Agave job POST into data
-        event_dict['data'] = minify_job_dict(dict(m))
-
+        cb_data = minify_job_dict(dict(m))
         # Process it as normal
-        try:
-            up_job = store.handle(event_dict, cb_token)
-            rx.on_success('Status for job {}: {}'.format(
-                up_job['uuid'], up_job['state']))
-        except Exception as exc:
-            rx.on_failure('Event not processed', exc)
+
+    # This handler should go after all schema-informed handler code
+    #
+    # Update event dictionary with final values
+    event_dict['uuid'] = cb_job_uuid
+    event_dict['name'] = cb_event_name
+    event_dict['data'] = cb_data
+
+    # Sanity check event_dict and token
+    if event_dict['uuid'] is None or event_dict['name'] is None or cb_token is None:
+        rx.on_failure('No actionable message was received and a mandatory URL parameter is missing.')
+
+    # Do the update
+    try:
+        up_job = store.handle(event_dict, cb_token)
+        rx.on_success('Status for job {}: {}'.format(
+            up_job['uuid'], up_job['state']))
+    except Exception as exc:
+        rx.on_failure('Event not processed', exc)
 
     # TODO: Implement support for generic schema. Must be last one evaluated!
 
