@@ -68,12 +68,12 @@ def main():
     cb_event_name = rx.context.get('event', None)
     cb_job_uuid = rx.context.get('uuid', None)
     cb_token = rx.context.get('token', 'null')
+    # RESEARCH - will we need to urldecode the contents of 'note'?
     cb_note = rx.context.get('note', 'Event had no JSON payload')
     # Accomodate 'status' which is what Agave jobs know about
     cb_agave_status = rx.context.get('status', None)
     cb_data = {'note': cb_note}
 
-    # TODO - Allow 'message=URLENCODEDSTRING' to set a value in cb_data
     event_dict = {'uuid': None,
                   'name': None,
                   'token': cb_token,
@@ -85,6 +85,7 @@ def main():
             # as url parameter 'status', which is the default behavior
             # baked into the PipelineJobs system
             cb_agave_status = m.get('status', cb_agave_status)
+            mes_agave_job_id = m.get('id', None)
             rx.logger.debug('agave_status: {}'.format(cb_agave_status))
             if cb_agave_status is not None:
                 cb_agave_status = cb_agave_status.upper()
@@ -94,8 +95,24 @@ def main():
         except Exception as exc:
             rx.on_failure('Agave callback POST was had missing or invalid parameters', exc)
 
-        # Push a slightly minified form of the Agave job POST into data
-        cb_data = minify_job_dict(dict(m))
+        # Push a filtered form of the Agave job POST into data
+        # on RUNNING and a simple status update otherwise
+
+        if cb_agave_status == 'RUNNING':
+            cb_data = minify_job_dict(dict(m))
+        else:
+            cb_data = {'status': cb_agave_status}
+            # fetch latest history entry and store as 'description' in event.data
+            try:
+                # Is there a better way than grabbing entire history that can
+                # be implemented in a pure Agave call? Alternatively, we coulc
+                # cache last offset for this job in rx.state but that will
+                # limit our scaling to one worker
+                agave_job_latest_history = rx.client.jobs.getHistory(jobId=mes_agave_job_id, limit=100)[-1].get('description', None)
+                if agave_job_latest_history is not None:
+                    cb_data['description'] = agave_job_latest_history
+            except Exception as agexc:
+                rx.logger.warning('Failed to get history for {}'.format(mes_agave_job_id))
 
     # If no event name was received but we do have an agave_status, use that
     if cb_event_name is None and cb_agave_status is not None:
