@@ -5,12 +5,12 @@ logs:
   token: ~
 mongodb:
   authn: ~
-  database: catalog_dev
+  database: catalog_test
 pipelines:
   pipeline_uuid: ~
   pipeline_manager_id: ~
   pipeline_manager_nonce: ~
   job_manager_id: ~
   job_manager_nonce: ~
-  job_indexer_id: ~
+  job_indexer_id: ABCDEFGHIJK
   job_indexer_nonce: ~

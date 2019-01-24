@@ -1,6 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"id": "https://schema.catalog.sd2e.org/schemas/pipelinejob_manager_event.json",
+	"$id": "https://schema.catalog.sd2e.org/schemas/pipelinejob_manager_event.json",
 	"title": "PipelineJobManagerEvent",
 	"description": "A state-change event for a PipelineJob",
 	"type": "object",

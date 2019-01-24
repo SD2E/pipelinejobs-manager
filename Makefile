@@ -18,7 +18,7 @@ DOCKER_NETWORK ?= --network docker_mongotest
 
 all: image
 
-datacatalog: formats
+datacatalog:
 	if [ -d ../python-datacatalog ]; then rm -rf python-datacatalog; cp -R ../python-datacatalog .; fi
 
 image:
@@ -47,8 +47,8 @@ tests-local: tests-local-callback
 
 tests-local-callback: tests-local-callback-run-finish tests-local-callback-run-fail
 
-tests-local-callback-run-finish: init tests-local-callback-run tests-local-callback-finish
-tests-local-callback-run-fail: init tests-local-callback-run tests-local-callback-fail
+tests-local-callback-run-finish: tests-local-callback-run tests-local-callback-finish
+tests-local-callback-run-fail: tests-local-callback-run tests-local-callback-fail
 
 tests-local-callback-run:
 	DOCKER_ENVS_SET="${DOCKER_NETWORK} -e status=$(TEST_JOB_STATUS) -e uuid=$(TEST_JOB_UUID) -e token=$(TEST_JOB_TOKEN)" bash $(SCRIPT_DIR)/run_container_message.sh tests/data/2-local-event-tacobot-agave-running.json
@@ -71,7 +71,7 @@ tests-local-callback-finish:
 tests-local-callback-fail:
 	DOCKER_ENVS_SET="${DOCKER_NETWORK} -e event=$(TEST_JOB_STATUS) -e uuid=$(TEST_JOB_UUID) -e token=$(TEST_JOB_TOKEN)" bash $(SCRIPT_DIR)/run_container_message.sh tests/data/2-local-event-tacobot-agave-failed.json
 
-tests-local-event: tests-local-event-create tests-local-event-run tests-local-event-finish
+tests-local-event: tests-local-event-run tests-local-event-finish
 
 tests-local-event-create:
 	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/1-local-create-tacobot.json

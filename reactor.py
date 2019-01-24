@@ -146,13 +146,6 @@ def main():
         event_dict['name'] = cb_event_name
         event_dict['data'] = cb_data
 
-    # This handler should go after all schema-informed handler code
-    #
-    # Update event dictionary with final values
-    # event_dict['uuid'] = cb_job_uuid
-    # event_dict['name'] = cb_event_name
-    # event_dict['data'] = cb_data
-
     # Sanity check event_dict and token
     if event_dict['uuid'] is None or event_dict['name'] is None or cb_token is None:
         rx.on_failure(
@@ -161,10 +154,21 @@ def main():
     # Do the update
     try:
         up_job = store.handle(event_dict, cb_token)
-        rx.on_success('Status for job {}: {}'.format(
+        rx.logger.info('Status for job {}: {}'.format(
             up_job['uuid'], up_job['state']))
     except Exception as exc:
         rx.on_failure('Event not processed', exc)
+
+    # Automatically index FINISHED jobs
+    if event_dict['name'] == 'finish' and up_job['state'] == 'FINISHED':
+        try:
+            index_mes = {'uuid': up_job['uuid']}
+            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+        except Exception as iexc:
+            rx.logger.warning(
+                'Failed to index {}: {}'.format(up_job['uuid'], iexc))
+
+    rx.on_success('Processed event in {} usec'.format(rx.elapsed()))
 
     # if action == 'delete':
     #     create_dict = {}

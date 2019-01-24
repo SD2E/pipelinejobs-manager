@@ -15,3 +15,4 @@ ida_rsa.*
 *.pkcs8
 .docker
 env/
+python-datacatalog/
