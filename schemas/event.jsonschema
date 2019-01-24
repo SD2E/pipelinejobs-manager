@@ -1,27 +1,22 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"title": "PipelineJobEvent",
+	"id": "https://schema.catalog.sd2e.org/schemas/pipelinejob_manager_event.json",
+	"title": "PipelineJobManagerEvent",
 	"description": "A state-change event for a PipelineJob",
 	"type": "object",
 	"properties": {
 		"uuid": {
-			"description": "The PipelineJob UUID",
-			"type": "string"
+			"$ref": "pipelinejob_uuid.json"
 		},
 		"name": {
-			"description": "A PipelineJob state event",
-			"type": "string",
-			"enum": ["update", "resource", "run", "fail", "finish", "validate", "validated", "reject", "finalize", "retire"]
+			"$ref": "pipelinejob_eventname.json"
 		},
 		"data": {
-			"description": "Additional information to store with the event (optional)",
+			"description": "Additional information to attach to the event (optional)",
 			"type": "object"
 		},
 		"token": {
-			"description": "Authorization token (issued when the job was created)",
-			"type": "string",
-			"minLength": 16,
-			"maxLength": 17
+			"$ref": "update_token.json"
 		}
 	},
 	"required": ["uuid", "name"],

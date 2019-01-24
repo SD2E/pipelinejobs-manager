@@ -1,14 +1,16 @@
 ---
 debug: false
-downloaded: downloaded.json
 logs:
   level: DEBUG
   token: ~
 mongodb:
   authn: ~
-  database: catalog_test
-
-only_extant_files: false
-storagesystems:
-  data-sd2e-community:
-    posix_path: /work/projects/SD2E-Community/prod/data
+  database: catalog_dev
+pipelines:
+  pipeline_uuid: ~
+  pipeline_manager_id: ~
+  pipeline_manager_nonce: ~
+  job_manager_id: ~
+  job_manager_nonce: ~
+  job_indexer_id: ~
+  job_indexer_nonce: ~

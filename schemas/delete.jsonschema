@@ -1,12 +1,12 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
+	"id": "https://schema.catalog.sd2e.org/schemas/pipelinejob_manager_delete_action.json",
 	"title": "PipelineJobDeleteAction",
 	"description": "Delete a PipelineJob record",
 	"type": "object",
 	"properties": {
 		"uuid": {
-			"description": "The PipelineJob UUID",
-			"type": "string"
+			"$ref": "pipelinejob_uuid.json"
 		},
 		"action": {
 			"description": "A management action",
@@ -21,10 +21,7 @@
 			"value": true
 		},
 		"token": {
-			"description": "An authorization token issued when the job was created",
-			"type": "string",
-			"minLength": 16,
-			"maxLength": 17
+			"$ref": "update_token.json"
 		}
 	},
 	"required": [

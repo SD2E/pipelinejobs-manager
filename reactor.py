@@ -5,6 +5,9 @@ from attrdict import AttrDict
 from jsonschema import ValidationError
 from pprint import pprint
 from reactors.runtime import Reactor, agaveutils
+
+# AFAIK we don't need PipelineJobManager here - should be able to just
+# send event messages to the Job's handler function
 from datacatalog.linkedstores.pipelinejob import PipelineJobStore, AgaveEvents
 from datacatalog.linkedstores.pipelinejob.exceptions import *
 
@@ -34,7 +37,7 @@ def main():
 #    ['event', 'agavejobs', 'create', 'delete']
     action = 'emptypost'
     try:
-        for a in ['agavejobs']:
+        for a in ['agavejobs', 'event']:
             try:
                 rx.logger.info('Testing against {} schema'.format(a))
                 rx.validate_message(
@@ -52,9 +55,8 @@ def main():
     rx.logger.debug('SCHEMA DETECTED: {}'.format(action))
 
     store = PipelineJobStore(mongodb=rx.settings.mongodb)
-        # rx.logger.debug('Verify database: {}'.format(store.db.list_collection_names()))
 
-    # Event processing
+    # Process the event
 
     # Get URL params from Abaco context
     #
@@ -62,74 +64,99 @@ def main():
     # code implemented to process the message. This has a
     # side effect of allowing the manager to process empty
     # POST bodies so long as the right values are presented
-    # as URL params. To make it very clear what is going on,
-    # the event will be annotated with a 'note' indicating
-    # its provenance.
+    # as URL params.
+    #
+    # cb_* variables are always overridden by the contents of
+    #   the POST body
+    #
     cb_event_name = rx.context.get('event', None)
     cb_job_uuid = rx.context.get('uuid', None)
     cb_token = rx.context.get('token', 'null')
-    # RESEARCH - will we need to urldecode the contents of 'note'?
+    # Accept a 'note' as a URL parameter
+    # TODO - urldecode the contents of 'note'
     cb_note = rx.context.get('note', 'Event had no JSON payload')
-    # Accomodate 'status' which is what Agave jobs know about
-    cb_agave_status = rx.context.get('status', None)
+    # NOTE - contents of cb_data will be overridden in create, event. agavejob
     cb_data = {'note': cb_note}
+    # Accept 'status', the Agave-centric name for job.state
+    # as well as 'state'
+    cb_agave_status = rx.context.get('status', rx.context.get('state', None))
 
-    event_dict = {'uuid': None,
-                  'name': None,
+    # Prepare template PipelineJobsEvent
+    event_dict = {'uuid': cb_job_uuid,
+                  'name': cb_event_name,
                   'token': cb_token,
                   'data': cb_data}
 
+    # This is the default message schema 'event'
+    if action == 'event':
+        # Filter message and override values in event_dict with its contents
+        for k in ['uuid', 'name', 'token', 'data']:
+            event_dict[k] = m.get(k, event_dict.get(k))
+
+    # AgaveJobs can update the status of an existing job but cannot
+    # create one. To do so, an Agave job must be launched
+    # using the PipelineJobsAgaveProxy resource.
     if action == 'agavejobs':
         try:
-            # This assumes a callback URL that sends the Agave job status
-            # as url parameter 'status', which is the default behavior
-            # baked into the PipelineJobs system
+            # Agave jobs POST their current JSON representation to
+            # callback URL targets. The POST body contains a 'status' key.
+            # If for some reason it doesn't, job status is determined by
+            # the 'state' or 'status' URL parameter.
             cb_agave_status = m.get('status', cb_agave_status)
+            # Agave job message bodies include 'id' which is the jobId
             mes_agave_job_id = m.get('id', None)
             rx.logger.debug('agave_status: {}'.format(cb_agave_status))
             if cb_agave_status is not None:
                 cb_agave_status = cb_agave_status.upper()
-                # # Map any unknown state to update and store it
-                # cb_event_name = AgaveEvents.agavejobs.get(
-                #     cb_agave_status, 'update')
         except Exception as exc:
-            rx.on_failure('Agave callback POST was had missing or invalid parameters', exc)
+            rx.on_failure('Agave callback POST and associated URL parameters were missing some required fields', exc)
 
-        # Push a filtered form of the Agave job POST into data
-        # on RUNNING and a simple status update otherwise
-
+        # If the job status is 'RUNNING' then use a subset of the POST for
+        # event.data. Otherwise, create an event.data from the most recent
+        # entry in the Agave job history. One small detail to note is that
+        # callbacks are sent at the beginning of event processing in the
+        # Agave jobs service and so a handful of fields in the job record
+        # that are late bound are not yet populated when the event is sent.
         if cb_agave_status == 'RUNNING':
             cb_data = minify_job_dict(dict(m))
         else:
             cb_data = {'status': cb_agave_status}
-            # fetch latest history entry and store as 'description' in event.data
+            # Fetch latest history entry to put in event.data
             try:
                 # Is there a better way than grabbing entire history that can
-                # be implemented in a pure Agave call? Alternatively, we coulc
+                # be implemented in a pure Agave call? Alternatively, we could
                 # cache last offset for this job in rx.state but that will
                 # limit our scaling to one worker
+                #
                 agave_job_latest_history = rx.client.jobs.getHistory(jobId=mes_agave_job_id, limit=100)[-1].get('description', None)
                 if agave_job_latest_history is not None:
                     cb_data['description'] = agave_job_latest_history
             except Exception as agexc:
-                rx.logger.warning('Failed to get history for {}'.format(mes_agave_job_id))
+                rx.logger.warning('Failed to get history for {}: {}'.format(
+                    mes_agave_job_id, agexc))
 
-    # If no event name was received but we do have an agave_status, use that
-    if cb_event_name is None and cb_agave_status is not None:
-        cb_event_name = AgaveEvents.agavejobs.get(cb_agave_status, 'update')
-        rx.logger.debug('Status: {} => Event: {}'.format(
-            cb_agave_status, cb_event_name))
+        # Map the Agave job status to an PipelineJobsEvent name
+        if cb_event_name is None and cb_agave_status is not None:
+            cb_event_name = AgaveEvents.agavejobs.get(cb_agave_status, 'update')
+            rx.logger.debug('Status: {} => Event: {}'.format(
+                cb_agave_status, cb_event_name))
+
+        # Event name and data can be updated as part of processing an Agave POST
+        # so apply the current values to event_dict here
+        event_dict['name'] = cb_event_name
+        event_dict['data'] = cb_data
 
     # This handler should go after all schema-informed handler code
     #
     # Update event dictionary with final values
-    event_dict['uuid'] = cb_job_uuid
-    event_dict['name'] = cb_event_name
-    event_dict['data'] = cb_data
+    # event_dict['uuid'] = cb_job_uuid
+    # event_dict['name'] = cb_event_name
+    # event_dict['data'] = cb_data
 
     # Sanity check event_dict and token
     if event_dict['uuid'] is None or event_dict['name'] is None or cb_token is None:
-        rx.on_failure('No actionable message was received and a mandatory URL parameter is missing.')
+        rx.on_failure(
+            'No actionable event was received.')
 
     # Do the update
     try:
@@ -138,85 +165,6 @@ def main():
             up_job['uuid'], up_job['state']))
     except Exception as exc:
         rx.on_failure('Event not processed', exc)
-
-    # TODO: Implement support for generic schema. Must be last one evaluated!
-
-    # # allow override of settings
-    # if '__options' in m:
-    #     try:
-    #         options_settings = m.get('__options', {}).get('settings', {})
-    #         if isinstance(options_settings, dict):
-    #             options_settings = AttrDict(options_settings)
-    #         rx.settings = rx.settings + options_settings
-    #     except Exception as exc:
-    #         rx.on_failure('Failed to handle options', exc)
-
-    # # small-eel/w7M4JZZJeGXml/EGy13KRPQMeWV
-    # stores_session = '/'.join([rx.nickname, rx.uid, rx.execid])
-    # rx.logger.debug('db.updates.session: {}'.format(stores_session))
-
-    # # Set up Store objects
-    # job_store = JobStore(mongodb=rx.settings.mongodb,
-    #                      config=rx.settings.get('catalogstore', {}),
-    #                      session=stores_session)
-
-    # rx.logger.info('HANDLING {}...'.format(action))
-
-    # if action == 'create':
-    #     create_dict = {}
-    #     for k in job_store.CREATE_OPTIONAL_KEYS:
-    #         if k in m:
-    #             create_dict[k] = m.get(k)
-    #     try:
-    #         new_job = job_store.create(
-    #             pipeline_uuid=m['pipeline_uuid'], archive_path=m['archive_path'], actor_id=rx.uid, **create_dict)
-    #         rx.on_success('Created job {} with access token {} for pipeline {}'.format(
-    #             str(new_job['uuid']), str(new_job['token']), m['pipeline_uuid']))
-    #     except Exception as exc:
-    #         rx.on_failure('Create failed', exc)
-
-    # if action == 'event':
-    #     event_dict = {}
-    #     for k in job_store.EVENT_OPTIONAL_KEYS:
-    #         if k in m:
-    #             event_dict[k] = m.get(k)
-    #     try:
-    #         up_job = job_store.handle_event(m.get('uuid'), m.get(
-    #             'event'), m.get('token'), **event_dict)
-    #         rx.on_success('New status for job {} is {}'.format(
-    #             up_job['_uuid'], up_job['status']))
-    #     except Exception as exc:
-    #         rx.on_failure('Event was not processed', exc)
-
-    # # Event processor
-    # cb_event = None
-    # cb_uuid = None
-    # cb_token = None
-    # if action == 'agavejobs':
-    #     event_dict = {}
-    #     try:
-    #         cb_agave_status = rx.context.get('status', None)
-    #         if cb_agave_status is not None:
-    #             cb_agave_status = cb_agave_status.upper()
-    #             cb_event = EventMappings.agavejobs.get(
-    #                 cb_agave_status, 'update')
-    #         if cb_event is None:
-    #             cb_event = rx.context.get('event').lower()
-    #         cb_uuid = rx.context.get('uuid')
-    #         cb_token = rx.context('token')
-    #     except Exception:
-    #         rx.on_failure('POST was missing one or more parameters')
-    #     # Push the Agave jobs POST into data
-    #     event_dict['data'] = dict(m)
-
-    #     # Process it as normal
-    #     try:
-    #         up_job = job_store.handle_event(
-    #             cb_uuid, cb_event, cb_token, **event_dict)
-    #         rx.on_success('New status for job {} is {}'.format(
-    #             up_job['_uuid'], up_job['status']))
-    #     except Exception as exc:
-    #         rx.on_failure('Event was not processed', exc)
 
     # if action == 'delete':
     #     create_dict = {}
