@@ -1,0 +1,24 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://schema.catalog.sd2e.org/schemas/pipelinejob_manager_event.json",
+	"title": "PipelineJobManagerEvent",
+	"description": "A state-change event for a PipelineJob",
+	"type": "object",
+	"properties": {
+		"uuid": {
+			"$ref": "pipelinejob_uuid.json"
+		},
+		"name": {
+			"$ref": "pipelinejob_eventname.json"
+		},
+		"data": {
+			"description": "Additional information to attach to the event (optional)",
+			"type": "object"
+		},
+		"token": {
+			"$ref": "update_token.json"
+		}
+	},
+	"required": ["uuid", "name"],
+	"additionalProperties": false
+}

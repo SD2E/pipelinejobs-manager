@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "AgaveJobsPost",
+	"description": "Callback POST from Agave API jobs service",
+    "type": "object",
+    "properties": {
+        "owner": {
+            "type": "string"
+        },
+        "appId": {
+            "type": "string"
+        },
+        "executionSystem": {
+            "type": "string"
+        },
+        "archivePath": {
+            "type": "string"
+        },
+        "archiveSystem": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string"
+        },
+        "inputs": {},
+        "parameters": {},
+        "_links": {}
+    },
+    "required": [
+        "appId",
+        "executionSystem",
+        "owner",
+        "archivePath",
+        "archiveSystem",
+        "status",
+        "inputs",
+        "parameters",
+        "_links"
+    ]
+}

@@ -1,0 +1,32 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"id": "https://schema.catalog.sd2e.org/schemas/pipelinejob_manager_delete_action.json",
+	"title": "PipelineJobDeleteAction",
+	"description": "Delete a PipelineJob record",
+	"type": "object",
+	"properties": {
+		"uuid": {
+			"$ref": "pipelinejob_uuid.json"
+		},
+		"action": {
+			"description": "A management action",
+			"type": "string",
+			"enum": [
+				"delete"
+			]
+		},
+		"force": {
+			"description": "Whether to hide or force-delete the job",
+			"type": "boolean",
+			"value": true
+		},
+		"token": {
+			"$ref": "update_token.json"
+		}
+	},
+	"required": [
+		"uuid",
+		"action"
+	],
+	"additionalProperties": false
+}

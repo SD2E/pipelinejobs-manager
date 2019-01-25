@@ -64,7 +64,7 @@ pipeline {
                     sh "get-job-client ${CLIENT_PREFIX}-${BRANCH_NAME}-deploy ${BUILD_ID}"
                     deployedActorId = sh(script: "echo -n ${ACTOR_ID_STAGING}", returnStdout: true).trim()
                     reactorName = sh(script: 'cat reactor.rc | egrep -e "^REACTOR_NAME=" | sed "s/REACTOR_NAME=//"', returnStdout: true).trim()
-                    sh(script: "abaco deploy -U ${ACTOR_ID_STAGING}", returnStdout: false)
+                    sh(script: "make deploy ACTOR_ID=${ACTOR_ID_STAGING}", returnStdout: false)
                     // TODO - update alias
                     println("Deployed ${reactorName}:staging with actorId ${ACTOR_ID_STAGING}")
                     slackSend ":tacc: Deployed *${reactorName}:staging* from ${BRANCH_NAME} with actorId *${ACTOR_ID_STAGING}*"
@@ -85,7 +85,7 @@ pipeline {
                     sh "get-job-client ${CLIENT_PREFIX}-${BRANCH_NAME}-deploy ${BUILD_ID}"
                     deployedActorId = sh(script: "echo -n ${ACTOR_ID_STAGING}", returnStdout: true).trim()
                     reactorName = sh(script: 'cat reactor.rc | egrep -e "^REACTOR_NAME=" | sed "s/REACTOR_NAME=//"', returnStdout: true).trim()
-                    sh(script: "abaco deploy -U ${ACTOR_ID_PROD}", returnStdout: false)
+                    sh(script: "make deploy ACTOR_ID=${ACTOR_ID_PROD}", returnStdout: false)
                     // TODO - update alias
                     println("Deployed ${reactorName}:production with actorId ${ACTOR_ID_PROD}")
                     slackSend ":tacc: Deployed *${reactorName}:prod* from ${BRANCH_NAME} with actorId *${ACTOR_ID_PROD}*"

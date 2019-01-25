@@ -1,9 +1,12 @@
 # Abaco and Reactors-specific
 .agave
 .agpy
-secrets.json
+secrets*.json
+service_account.json
 .ACTOR_ID*
 tmp.*
+env/
+python-datacatalog/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -109,3 +112,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.vscode/

@@ -1,16 +1,10 @@
 FROM sd2e/reactors:python3-edge
 
-# reactor.py, config.yml, and message.jsonschema will be automatically
-# added to the container when you run docker build or abaco deploy
-# COPY datacatalog /datacatalog
-# Comment out if not actively developing python-datacatalog
+ARG DATACATALOG_BRANCH=0_2_0
 RUN pip uninstall --yes datacatalog || true
-# COPY datacatalog /datacatalog
+RUN pip3 install --upgrade --no-cache-dir \
+    git+https://github.com/SD2E/python-datacatalog.git@${DATACATALOG_BRANCH}
 
-# Install from Repo
-RUN pip3 install --upgrade git+https://github.com/SD2E/python-datacatalog.git@develop
+COPY schemas /schemas
 
-COPY agavejobs.jsonschema /schemas/agavejobs.jsonschema
-COPY delete.jsonschema /schemas/delete.jsonschema
-COPY event.jsonschema /schemas/event.jsonschema
-COPY message.jsonschema /schemas/create.jsonschema
+# WORKDIR /mnt/ephemeral-01
