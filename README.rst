@@ -1,117 +1,102 @@
-PIPELINE JOBS MANAGER
-=====================
+====================
+PipelineJobs Manager
+====================
 
-This is a dedicated Abaco actor that manages creation, deletion, and status
-updates for ``PipelineJobs``. It works in synergy with other Abaco actors that
-create jobs using the ``ManagedPipelineJob`` class from ``python-datacatalog``.
-It accepts multiple types of JSON message via authenticated HTTP POST and can
-take the following actions:
+This Reactor manages updates to **PipelineJobs** once they are created by other
+processes using the **ManagedPipelineJob** and **ReactorManagedPipelineJob**
+classes.
 
-- Update a job's state
-- Create a new job for an existing pipeline
-- Delete a job
+Updating Job State
+------------------
 
-Updating State
---------------
+**PipelineJobs Manager** can update a job's state via three paths:
 
-The PipelineJobs system is designed to integrate state and metadata over
-multiple service platforms. Currently, it integrates compute jobs between Agave
-and Abaco systems, but is also able to express how those jobs depend on other
-services such as web services, third party databases, and the like. Eventually,
-it will be able to orchestrate and integrate tasks on other systems.
+#. Receipt of a JSON-formatted **PipelineJob** event
+#. Receipt of necessary fields to form a **PipelineJob** event via URL parameters
+#. Receipt of an Agave API Jobs status callback when coupled with UUID and token parameters
 
-Sending an Event Message
-^^^^^^^^^^^^^^^^^^^^^^^^
+The **PipelineJobs Manager** works synergistically with the **PipelineJobs
+Indexer**. When a **finish** event is received that results in the job
+transitioning to a **FINISHED** state, an **index** request is sent
+automatically to **PipelineJobs Indexer** to complete the initial stages of
+computation and metadata linkage.
 
-PipelineJobs is built on Abaco actors, which are event-driven by nature. Thus,
-the simplest means to update a PipelineJob is to send a JSON document in the
-``PipelineJobEvent`` schema to a ``PipelineJobManager`` actor. Here is an
-example of sending an **finish** event to job
-``1073f4ff-c2b9-5190-bd9a-e6a406d9796a`` indicating that the job has completed.
-The specific URL for a ``PipelineJobManager`` can vary, but will follow the
-form ``https://<tenantUrl>/actors/v2/<actorId>/messages``.
+JSON-formatted Event
+^^^^^^^^^^^^^^^^^^^^
+
+The default method for updating a PipelineJob's state is to send a JSON message
+to this actor. Here is an example of a **finish** event to be sent to job ``1073f4ff-c2b9-5190-bd9a-e6a406d9796a``, which will indicate the job has
+completed its primary computation and data archiving.
 
 .. code-block:: json
 
     {
       "uuid": "1073f4ff-c2b9-5190-bd9a-e6a406d9796a",
-      "data": {
-        "arbitrary": "key value data"
-      },
       "name": "finish",
       "token": "0dc73dc3ff39b49a"
     }
 
-Sending State via URL Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This can be sent directly over HTTP like so:
 
-The ``uuid``, and ``event``, ``token`` fields can be sent as URL parameters in
-an HTTP POST. An extra ``note`` can be sent, which will be used to populate the
-event's ``data`` key if no other valid JSON is posted with the request.
-Otherwise, the contents of the POST body will be parsed as JSON and processed
-as the event's ``data`` key. The example from above could be replicated using
-only URL parameters like so:
-
-.. code-block:: shell
-
-    curl -XPOST --data '{"arbitrary": "key value data"}' \
-        https://<tenantUrl>/actors/v2/<actorId>/messages?uuid=1073f4ff-c2b9-5190-bd9a-e6a406d9796a&\
-        event=finish&token=0dc73dc3ff39b49a
-
-Managing PipelineJobs
----------------------
-
-Jobs can be managed via formatted JSON documents. Presently, **delete** is
-the only action supported. To delete a ``PipelineJob``, a message in the
-``PipelineJobDeleteAction`` is POSTED to a ``PipelineJobManager`` actor.
-Here is an example that deletes job ``10715620-ae90-5b92-bf4e-fbd491c21e03``
-
-.. code-block:: json
-
-    {
-      "uuid": "10715620-ae90-5b92-bf4e-fbd491c21e03",
-      "action": "delete",
-      "force": true,
-      "token": "0dc73dc3ff39b49a"
-    }
-
-Integrating with PipelineJobsManager
-------------------------------------
-
-This is fairly straightforward: the target platform only needs to be able to
-send a simple **event** payload to a ``PipelineJobManager`` webhook URL. That
-payload must contain:
-
-1. The UUID of the ``PipelineJob`` that is managing the integration
-2. A short alphanumeric **token** authorizing updates to the job
-3. Some expression of the job's status on the target platform
-
-Optionally, the event payload can also contain an arbitrary JSON object
-``data`` that will be attached to the event in the job's history. This can be \
-useful for passing along metadata that isn't represented by the
-``PipelineJobs`` schema but that is needed elsewhere.
-
-Authentication
-^^^^^^^^^^^^^^
-
-All POSTs to a ``PipelineJobsManager`` must be authenticated. There are two mechanisms by which this can happen:
-
-  1. Send a valid TACC.cloud Oauth2 Bearer token with the request
-  2. Include a special URL parameter called a **nonce** with the HTTP request
-
-.. code-block:: shell
-   :caption: "Sending a Bearer Token"
+.. code-block:: console
 
     curl -XPOST -H "Authorization: Bearer 969d11396c43b0b810387e4da840cb37" \
         --data '{"uuid": "1073f4ff-c2b9-5190-bd9a-e6a406d9796a", \
         "token": "0dc73dc3ff39b49a",\
         "name": "finish"}' \
-        https://<tenantUrl>/actors/v2/<actorId>/messages
+        https://api.tacc.cloud/actors/v2/<actorId>/messages
+
+It can also be sent from within a Recator like so:
+
+.. code-block:: python
+
+    rx = Reactor()
+    manager_id = '<actorId>'
+    finish_mes = { 'uuid': '1073f4ff-c2b9-5190-bd9a-e6a406d9796a',
+                   'name': 'finish',
+                   'token': '0dc73dc3ff39b49a'}
+    rx.send_message(manager_id, finish_mes)
+
+URL Parameters Event
+^^^^^^^^^^^^^^^^^^^^
+
+The ``uuid``, and ``event``, ``token`` fields can be sent as URL parameters in
+an HTTP POST. The contents of the POST body will be attached to the event if
+one is present. Our **finish** event expressed as URL parameters looks like:
 
 .. code-block:: shell
-   :caption: "Using a Nonce"
 
     curl -XPOST --data '{"arbitrary": "key value data"}' \
-        https://<tenantUrl>/actors/v2/<actorId>/messages?uuid=1073f4ff-c2b9-5190-bd9a-e6a406d9796a&\
-        name=finish&token=0dc73dc3ff39b49a&\
-        x-nonce=TACC_XXXXxxxxYz
+        https://api.tacc.cloud/actors/v2/<actorId>/messages?uuid=1073f4ff-c2b9-5190-bd9a-e6a406d9796a&\
+        event=finish&token=0dc73dc3ff39b49a
+
+Agave Jobs Notification
+^^^^^^^^^^^^^^^^^^^^^^^
+
+HTTP POST body and URL parameters are combined to link the Agave
+Jobs system with **PipelineJobs**, which is quite handy as Agave jobs often
+are enlisted to do the computational heavy lifting in analysis workflows. This
+approach is demonstrated in the **demo-jobs-reactor-app** repository.
+
+PipelineJobs Events
+--------------------
+
+The state of every PipelineJob proceeds through a defined lifecycle, where
+transitions occur in response to receipt of named events. This is illustrated
+in the following image:
+
+.. image:: http://docs.catalog.sd2e.org/en/gh-pages/_images/fsm-created.png
+   :alt: PipelineJob States
+   :align: right
+
+**PipelineJobs Manager** accepts any of the events (lower case words attached
+to the graph edges) save for **create**, which is reserved for other agents.
+
+Authentication
+--------------
+
+POSTs to a **PipelineJobs Manager** must be authenticated by one of two means:
+
+  1. Send a valid TACC.cloud Oauth2 Bearer token with the request
+  2. Include a special URL parameter called a **nonce** with the HTTP request
+
