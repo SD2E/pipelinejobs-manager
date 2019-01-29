@@ -6,27 +6,24 @@ This Reactor manages updates to **PipelineJobs** once they are created by other
 processes using the **ManagedPipelineJob** and **ReactorManagedPipelineJob**
 classes.
 
-Updating Job State
-------------------
+Update Job State
+----------------
 
-**PipelineJobs Manager** can update a job's state via three paths:
+**PipelineJobs Manager** can update a job's state via three mechanisms:
 
-#. Receipt of a JSON-formatted **PipelineJob** event
-#. Receipt of necessary fields to form a **PipelineJob** event via URL parameters
-#. Receipt of an Agave API Jobs status callback when coupled with UUID and token parameters
+#. Receipt of a JSON-formatted **pipelinejob_manager_event**
+#. Receipt of URL parameters sufficient to form a **pipelinejob_manager_event**
+#. Receipt of a **agave_job_callback** POST combined with ``uuid``, ``status`` and ``token`` URL parameters
 
-The **PipelineJobs Manager** works synergistically with the **PipelineJobs
-Indexer**. When a **finish** event is received that results in the job
-transitioning to a **FINISHED** state, an **index** request is sent
-automatically to **PipelineJobs Indexer** to complete the initial stages of
-computation and metadata linkage.
+These named document formats are documented below in jsonschemas_.
 
-JSON-formatted Event
-^^^^^^^^^^^^^^^^^^^^
+JSON Event Messages
+^^^^^^^^^^^^^^^^^^^
 
 The default method for updating a PipelineJob's state is to send a JSON message
-to this actor. Here is an example of a **finish** event to be sent to job ``1073f4ff-c2b9-5190-bd9a-e6a406d9796a``, which will indicate the job has
-completed its primary computation and data archiving.
+to the Manager actor. Here is an example of a **finish** event for job
+``1073f4ff-c2b9-5190-bd9a-e6a406d9796a``, which will indicate the job has
+completed primary computation and archiving steps.
 
 .. code-block:: json
 
@@ -100,3 +97,17 @@ POSTs to a **PipelineJobs Manager** must be authenticated by one of two means:
   1. Send a valid TACC.cloud Oauth2 Bearer token with the request
   2. Include a special URL parameter called a **nonce** with the HTTP request
 
+.. _jsonschemas:
+
+JSON Schemas
+------------
+
+.. literalinclude:: schemas/agavejobs.jsonschema
+   :language: json
+   :linenos:
+   :caption: agave_job_callback
+
+.. literalinclude:: schemas/event.jsonschema
+   :language: json
+   :linenos:
+   :caption: pipelinejob_manager_event
