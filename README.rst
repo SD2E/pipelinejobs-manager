@@ -15,7 +15,7 @@ Update Job State
 #. Receipt of URL parameters sufficient to form a **pipelinejob_manager_event**
 #. Receipt of a **agave_job_callback** POST combined with ``uuid``, ``status`` and ``token`` URL parameters
 
-These named document formats are documented below in jsonschemas_.
+These named document formats are documented below in JSONSchemas_.
 
 JSON Event Messages
 ^^^^^^^^^^^^^^^^^^^
@@ -97,7 +97,7 @@ POSTs to a **PipelineJobs Manager** must be authenticated by one of two means:
   1. Send a valid TACC.cloud Oauth2 Bearer token with the request
   2. Include a special URL parameter called a **nonce** with the HTTP request
 
-.. _jsonschemas:
+.. _JSONSchemas:
 
 JSON Schemas
 ------------
