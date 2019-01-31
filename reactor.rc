@@ -6,5 +6,5 @@ REACTOR_ALIAS=pipeline_jobs_manager
 # Docker settings
 DOCKER_HUB_ORG=sd2e
 DOCKER_IMAGE_TAG=pipeline_jobs_manager
-DOCKER_IMAGE_VERSION=0.0.7
+DOCKER_IMAGE_VERSION=0.0.8
 DOCKER_USE_COMMIT_HASH=1
