@@ -5,7 +5,7 @@ logs:
   token: ~
 mongodb:
   authn: ~
-  database: catalog_test
+  database: catalog_staging
 pipelines:
   pipeline_uuid: ~
   pipeline_manager_id: kOYmxWRq5X4K7
