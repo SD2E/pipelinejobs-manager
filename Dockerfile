@@ -5,7 +5,7 @@ RUN pip uninstall --yes datacatalog || true
 # COPY datacatalog /datacatalog
 
 # Install from Repo
-RUN pip3 install --upgrade git+https://github.com/SD2E/python-datacatalog.git@develop
+RUN pip3 install --upgrade git+https://github.com/SD2E/python-datacatalog.git@v1.0.0
 
 COPY agavejobs.jsonschema /schemas/agavejobs.jsonschema
 COPY delete.jsonschema /schemas/delete.jsonschema
