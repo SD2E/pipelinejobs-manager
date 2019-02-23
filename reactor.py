@@ -170,13 +170,16 @@ def main():
     except Exception as exc:
         rx.on_failure("Event not processed", exc)
 
-    # Automatically index FINISHED jobs
+    # Automatically trigger the default indexing behavior
     if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
+        rx.logger.info("Detected FINISHED transition for {}".format(up_job["uuid"]))
         try:
-            index_mes = {"uuid": up_job["uuid"]}
+            index_mes = {"name": "index", "uuid": up_job["uuid"], "token": cb_token}
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
         except Exception as iexc:
-            rx.logger.warning("Failed to index {}: {}".format(up_job["uuid"], iexc))
+            rx.logger.warning(
+                "Failed to request indexing for {}: {}".format(up_job["uuid"], iexc)
+            )
 
     rx.on_success("Processed event in {} usec".format(rx.elapsed()))
 
