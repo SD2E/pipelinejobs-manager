@@ -174,11 +174,26 @@ def main():
     if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
         rx.logger.info("Detected FINISHED transition for {}".format(up_job["uuid"]))
         try:
+            rx.logger.debug("Triggering indexing workflow")
             index_mes = {"name": "index", "uuid": up_job["uuid"], "token": cb_token}
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
         except Exception as iexc:
             rx.logger.warning(
                 "Failed to request indexing for {}: {}".format(up_job["uuid"], iexc)
+            )
+
+        try:
+            rx.logger.debug("Triggering permissions grant")
+            resp = store.find_one_by_uuid(up_job["uuid"])
+            archive_path = resp.get('archive_path', None)
+            archive_system = resp.get('archive_system', None)
+            archive_agave_path = 'agave://' + archive_system + archive_path
+            grant_mes = {"uri": archive_agave_path, "username": "world",
+                         "permission": "READ", "recursive": True}
+            rx.send_message(rx.settings.pipelines.permission_manager, grant_mes)
+        except Exception as iexc:
+            rx.logger.warning(
+                "Failed to request permission grant for {}: {}".format(up_job["uuid"], iexc)
             )
 
     rx.on_success("Processed event in {} usec".format(rx.elapsed()))

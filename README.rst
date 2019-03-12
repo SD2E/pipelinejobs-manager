@@ -6,6 +6,21 @@ This Reactor manages updates to **PipelineJobs** once they are created by other
 processes using the **ManagedPipelineJob** and **ReactorManagedPipelineJob**
 classes.
 
+Aliases
+-------
+Rather than track Abaco actorIds, various versions of this Reactor are
+available using  Abaco's new *aliases* feature.
+
++-------------+-----------------------------------------+
+| Version     | Alias                                   |
++=============+=========================================+
+| Production  | ``jobs-manager.prod``, ``jobs-manager`` |
++-------------+-----------------------------------------+
+| Staging     | NA                                      |
++-------------+-----------------------------------------+
+| Development |``jobs-manager.dev``                     |
++-------------+-----------------------------------------+
+
 Update Job State
 ----------------
 
@@ -92,12 +107,12 @@ to the graph edges) save for **create**, which is reserved for other agents.
 Authentication
 --------------
 
-POSTs to a **PipelineJobs Manager** must be authenticated by one of two means:
-
-  1. Send a valid TACC.cloud Oauth2 Bearer token with the request
-  2. Include a special URL parameter called a **nonce** with the HTTP request
-
-.. _JSONSchemas:
+Direct POSTs to a **PipelineJobs Indexer** must be authenticated. One usually
+sends a valid TACC.cloud Oauth2 Bearer token with the request (this is the
+default expectation for ``curl`` and ``abaco cli``, but this assumes your
+account has been granted **EXECUTE** rights on the Reactor. For shared
+infrastructure and services, one will instead send a special string known as a
+a **nonce** along with the HTTP request.
 
 JSON Schemas
 ------------
