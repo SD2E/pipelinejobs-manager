@@ -163,14 +163,32 @@ def main():
     if event_dict["uuid"] is None or event_dict["name"] is None or cb_token is None:
         rx.on_failure("No actionable event was received.")
 
-    # Do the update
+    # Event handler
     try:
-        up_job = store.handle(event_dict, cb_token)
-        rx.logger.info("Status for job {}: {}".format(up_job["uuid"], up_job["state"]))
+
+        # Proxy 'index'
+        if event_dict["name"] == "index":
+            rx.logger.debug("Proxying 'index' event")
+            index_mes = {"name": "index", "uuid": cb_job_uuid, "token": cb_token}
+            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+        # Proxy 'indexed'
+        elif event_dict["name"] == "indexed":
+            rx.logger.debug("Proxying 'indexed' event")
+            index_mes = {"name": "indexed", "uuid": cb_job_uuid, "token": cb_token}
+            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+
+        # Handle all other events
+        else:
+            rx.logger.info("Handling '{}' event".format(cb_event_name))
+            up_job = store.handle(event_dict, cb_token)
+            rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
+
     except Exception as exc:
         rx.on_failure("Event not processed", exc)
 
-    # Automatically trigger the default indexing behavior
+    # Special case: * - [finish] -> FINISHED
+    #
+    # Trigger indexing and run a permission grant
     if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
         rx.logger.info("Detected FINISHED transition for {}".format(up_job["uuid"]))
         try:
