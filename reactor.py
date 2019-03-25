@@ -172,12 +172,15 @@ def main():
             index_mes = {"name": "index", "uuid": event_dict['uuid'], "token": event_dict['token']}
             rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+            rx.logger.debug("Triggered indexing")
+
         # Proxy 'indexed'
         elif event_dict["name"] == "indexed":
             rx.logger.info("Proxying 'indexed' event")
             index_mes = {"name": "indexed", "uuid": event_dict['uuid'], "token": event_dict['token']}
             rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+            rx.logger.debug("Triggered indexed")
 
         # Handle all other events
         else:
@@ -194,6 +197,7 @@ def main():
                 rx.logger.debug("Triggering indexing workflow")
                 index_mes = {"name": "index", "uuid": up_job["uuid"], "token": cb_token}
                 rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+                rx.logger.debug("Triggered indexing")
             except Exception as iexc:
                 rx.logger.warning(
                     "Failed to request indexing for {}: {}".format(up_job["uuid"], iexc)
