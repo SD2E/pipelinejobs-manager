@@ -168,51 +168,53 @@ def main():
 
         # Proxy 'index'
         if event_dict["name"] == "index":
-            rx.logger.debug("Proxying 'index' event")
-            index_mes = {"name": "index", "uuid": cb_job_uuid, "token": cb_token}
+            rx.logger.info("Proxying 'index' event")
+            index_mes = {"name": "index", "uuid": event_dict['uuid'], "token": event_dict['token']}
+            rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
         # Proxy 'indexed'
         elif event_dict["name"] == "indexed":
-            rx.logger.debug("Proxying 'indexed' event")
-            index_mes = {"name": "indexed", "uuid": cb_job_uuid, "token": cb_token}
+            rx.logger.info("Proxying 'indexed' event")
+            index_mes = {"name": "indexed", "uuid": event_dict['uuid'], "token": event_dict['token']}
+            rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
 
         # Handle all other events
         else:
-            rx.logger.info("Handling '{}' event".format(cb_event_name))
+            rx.logger.info("Handling '{}' event".format(event_dict['name']))
             up_job = store.handle(event_dict, cb_token)
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
 
+        # Special case: * - [finish] -> FINISHED
+        #
+        # Trigger indexing and run a permission grant
+        if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
+            rx.logger.info("Detected FINISHED transition for {}".format(up_job["uuid"]))
+            try:
+                rx.logger.debug("Triggering indexing workflow")
+                index_mes = {"name": "index", "uuid": up_job["uuid"], "token": cb_token}
+                rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+            except Exception as iexc:
+                rx.logger.warning(
+                    "Failed to request indexing for {}: {}".format(up_job["uuid"], iexc)
+                )
+
+            try:
+                rx.logger.debug("Triggering permissions grant")
+                resp = store.find_one_by_uuid(up_job["uuid"])
+                archive_path = resp.get('archive_path', None)
+                archive_system = resp.get('archive_system', None)
+                archive_agave_path = 'agave://' + archive_system + archive_path
+                grant_mes = {"uri": archive_agave_path, "username": "world",
+                             "permission": "READ", "recursive": True}
+                rx.send_message(rx.settings.pipelines.permission_manager, grant_mes)
+            except Exception as iexc:
+                rx.logger.warning(
+                    "Failed to request permission grant for {}: {}".format(up_job["uuid"], iexc)
+                )
+
     except Exception as exc:
         rx.on_failure("Event not processed", exc)
-
-    # Special case: * - [finish] -> FINISHED
-    #
-    # Trigger indexing and run a permission grant
-    if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
-        rx.logger.info("Detected FINISHED transition for {}".format(up_job["uuid"]))
-        try:
-            rx.logger.debug("Triggering indexing workflow")
-            index_mes = {"name": "index", "uuid": up_job["uuid"], "token": cb_token}
-            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
-        except Exception as iexc:
-            rx.logger.warning(
-                "Failed to request indexing for {}: {}".format(up_job["uuid"], iexc)
-            )
-
-        try:
-            rx.logger.debug("Triggering permissions grant")
-            resp = store.find_one_by_uuid(up_job["uuid"])
-            archive_path = resp.get('archive_path', None)
-            archive_system = resp.get('archive_system', None)
-            archive_agave_path = 'agave://' + archive_system + archive_path
-            grant_mes = {"uri": archive_agave_path, "username": "world",
-                         "permission": "READ", "recursive": True}
-            rx.send_message(rx.settings.pipelines.permission_manager, grant_mes)
-        except Exception as iexc:
-            rx.logger.warning(
-                "Failed to request permission grant for {}: {}".format(up_job["uuid"], iexc)
-            )
 
     rx.on_success("Processed event in {} usec".format(rx.elapsed()))
 
