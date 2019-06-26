@@ -39,7 +39,7 @@ def main():
     #    ['event', 'agavejobs', 'create', 'delete']
     action = "emptypost"
     try:
-        for a in ["agavejobs", "event"]:
+        for a in ["aloejobs", "event", "agavejobs"]:
             try:
                 rx.logger.info("Testing against {} schema".format(a))
                 rx.validate_message(
@@ -78,9 +78,9 @@ def main():
     # Accept a 'note' as a URL parameter
     # TODO - urldecode the contents of 'note'
     cb_note = rx.context.get("note", "Event had no JSON payload")
-    # NOTE - contents of cb_data will be overridden in create, event. agavejob
+    # NOTE - contents of cb_data will be overridden in create, event. aloejob
     cb_data = {"note": cb_note}
-    # Accept 'status', the Agave-centric name for job.state
+    # Accept 'status', the Aloe-centric name for job.state
     # as well as 'state'
     cb_agave_status = rx.context.get("status", rx.context.get("state", None))
 
@@ -102,8 +102,10 @@ def main():
     # create one. To do so, an Agave job must be launched
     # using the PipelineJobsAgaveProxy resource.
     if action == "agavejobs":
+        rx.on_failure("Agave callbacks are no longer supported")
+    elif action == "aloejobs":
         try:
-            # Agave jobs POST their current JSON representation to
+            # Aloe jobs POST their current JSON representation to
             # callback URL targets. The POST body contains a 'status' key.
             # If for some reason it doesn't, job status is determined by
             # the 'state' or 'status' URL parameter.
@@ -111,12 +113,12 @@ def main():
                 cb_agave_status = m.get("status", None)
             # Agave job message bodies include 'id' which is the jobId
             mes_agave_job_id = m.get("id", None)
-            rx.logger.debug("agave_status: {}".format(cb_agave_status))
+            rx.logger.debug("aloe_status: {}".format(cb_agave_status))
             if cb_agave_status is not None:
                 cb_agave_status = cb_agave_status.upper()
         except Exception as exc:
             rx.on_failure(
-                "Agave callback POST and associated URL parameters were missing some required fields",
+                "Aloe callback POST and associated URL parameters were missing some required fields",
                 exc,
             )
 
@@ -169,7 +171,11 @@ def main():
         # Proxy 'index'
         if event_dict["name"] == "index":
             rx.logger.info("Proxying 'index' event")
-            index_mes = {"name": "index", "uuid": event_dict['uuid'], "token": event_dict['token']}
+            index_mes = {
+                "name": "index",
+                "uuid": event_dict["uuid"],
+                "token": event_dict["token"],
+            }
             rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
             rx.logger.debug("Triggered indexing")
@@ -177,14 +183,18 @@ def main():
         # Proxy 'indexed'
         elif event_dict["name"] == "indexed":
             rx.logger.info("Proxying 'indexed' event")
-            index_mes = {"name": "indexed", "uuid": event_dict['uuid'], "token": event_dict['token']}
+            index_mes = {
+                "name": "indexed",
+                "uuid": event_dict["uuid"],
+                "token": event_dict["token"],
+            }
             rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
             rx.logger.debug("Triggered indexed")
 
         # Handle all other events
         else:
-            rx.logger.info("Handling '{}' event".format(event_dict['name']))
+            rx.logger.info("Handling '{}' event".format(event_dict["name"]))
             up_job = store.handle(event_dict, cb_token)
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
 
@@ -206,15 +216,21 @@ def main():
             try:
                 rx.logger.debug("Triggering permissions grant")
                 resp = store.find_one_by_uuid(up_job["uuid"])
-                archive_path = resp.get('archive_path', None)
-                archive_system = resp.get('archive_system', None)
-                archive_agave_path = 'agave://' + archive_system + archive_path
-                grant_mes = {"uri": archive_agave_path, "username": "world",
-                             "permission": "READ", "recursive": True}
+                archive_path = resp.get("archive_path", None)
+                archive_system = resp.get("archive_system", None)
+                archive_agave_path = "agave://" + archive_system + archive_path
+                grant_mes = {
+                    "uri": archive_agave_path,
+                    "username": "world",
+                    "permission": "READ",
+                    "recursive": True,
+                }
                 rx.send_message(rx.settings.pipelines.permission_manager, grant_mes)
             except Exception as iexc:
                 rx.logger.warning(
-                    "Failed to request permission grant for {}: {}".format(up_job["uuid"], iexc)
+                    "Failed to request permission grant for {}: {}".format(
+                        up_job["uuid"], iexc
+                    )
                 )
 
     except Exception as exc:
