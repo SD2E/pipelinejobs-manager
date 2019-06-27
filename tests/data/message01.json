@@ -1,0 +1,25 @@
+{
+    "parameters": {
+        "experiment_id": "experiment.uw_biofab.17016"
+    },
+    "job_definition": {
+        "name": "sample.uw_biofab.141711",
+        "appId": "urrutia-novel_chassis_app-0.1.0",
+        "archive": "true",
+        "archiveSystem": "data-sd2e-community",
+        "archivePath": "",
+        "maxRunTime": "48:00:00",
+        "inputs": {},
+        "parameters": {
+            "path_read1": "/products/v1/55c8d93d-2115-53ba-ba05-446f47d7ff72/850e742e-e67a-5e99-bc04-c60d1eec9a41/f42d3f7f-07dc-596f-86f9-df75083e52cc/fun-wolf-20181127T173243Z/preprocessed/141711-M9-Kan-IPTG_S42_merged_R1_rRNA_free_reads.fastq.gz",
+            "path_read2": "/products/v1/55c8d93d-2115-53ba-ba05-446f47d7ff72/850e742e-e67a-5e99-bc04-c60d1eec9a41/f42d3f7f-07dc-596f-86f9-df75083e52cc/fun-wolf-20181127T173243Z/preprocessed/141711-M9-Kan-IPTG_S42_merged_R2_rRNA_free_reads.fastq.gz",
+            "path_fasta": "/reference/novel_chassis/uma_refs/MG1655_NAND_Circuit/MG1655_NAND_Circuit.fa",
+            "path_gff": "/reference/novel_chassis/uma_refs/amin_genes.gff",
+            "path_interval_file": "/reference/novel_chassis/uma_refs/MG1655_NAND_Circuit/MG1655_NAND_Circuit.interval_list",
+            "path_ref_flat": "/reference/novel_chassis/uma_refs/modified.ecoli.MG1655.refFlat.txt",
+            "path_dict_file": "/reference/novel_chassis/uma_refs/MG1655_NAND_Circuit/MG1655_NAND_Circuit.dict",
+            "outname": "sample.uw_biofab.141711_MG1655_NAND_Circuit_replicate_4_time_5:hours_temp_37.0_arabinose_0_mM_IPTG_0.25_mM"
+        }
+    },
+    "instanced": false
+}

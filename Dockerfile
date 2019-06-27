@@ -1,13 +1,14 @@
 FROM sd2e/reactors:python3-edge
 
-# Comment out if not actively developing python-datacatalog
-RUN pip uninstall --yes datacatalog || true
-# COPY datacatalog /datacatalog
+ARG DATACATALOG_BRANCH=2_1
+# RUN pip uninstall --yes datacatalog || true
+RUN pip3 install --upgrade --no-cache-dir \
+    git+https://github.com/SD2E/python-datacatalog.git@${DATACATALOG_BRANCH}
 
-# Install from Repo
-RUN pip3 install --upgrade git+https://github.com/SD2E/python-datacatalog.git@v1.0.0
+COPY schemas /schemas
 
-COPY agavejobs.jsonschema /schemas/agavejobs.jsonschema
-COPY delete.jsonschema /schemas/delete.jsonschema
-COPY event.jsonschema /schemas/event.jsonschema
-COPY message.jsonschema /schemas/create.jsonschema
+ENV CATALOG_ADMIN_TOKEN_KEY=ErWcK75St2CUetMn7pzh8EwzAhn9sHHK54nA
+ENV CATALOG_ADMIN_TOKEN_LIFETIME=3600
+ENV CATALOG_RECORDS_SOURCE=jobs-manager
+ENV CATALOG_STORAGE_SYSTEM=data-sd2e-community
+ENV CATALOG_LOG_LEVEL=INFO

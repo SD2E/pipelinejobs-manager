@@ -8,23 +8,20 @@ from attrdict import AttrDict
 PWD = os.getcwd()
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(HERE)
-# sys.path.insert(0, PARENT)
-# sys.path.append('/')
 
 # Valid environment variable prefixes to parameterize tests
 PREFIXES = ['AGAVE', '_AGAVE', 'TACC', '_TACC']
 
-
 @pytest.fixture(scope='session')
 def credentials():
-    '''
+    """
     Import Agave credentials for a testing session
 
     Ordering:
     1. Test credentials in PWD
     2. User's credential store
     3. Environment variables
-    '''
+    """
     credentials = {}
 
     # test credentials file
@@ -82,7 +79,8 @@ def credentials():
 
 @pytest.fixture(scope='session')
 def agave(credentials):
-    '''Return a functional Agave client'''
+    """Return a functional Agave client
+    """
     aga = a.Agave(username=credentials.get('username'),
                   password=credentials.get('password'),
                   api_server=credentials.get('apiserver'),
@@ -96,8 +94,9 @@ def agave(credentials):
 
 @pytest.fixture(scope='session')
 def settings():
-    '''Read tests/config.yml and return AttrDict simulating Reactor.settings'''
-    with open(os.path.join(PWD, 'tests', 'config.yml'), "r") as conf:
+    """Read tests/config.yml and return AttrDict simulating Reactor.settings
+    """
+    with open(os.path.join(PWD, 'config.yml'), "r") as conf:
         y = yaml.safe_load(conf)
         assert isinstance(y, dict)
         return AttrDict(y)

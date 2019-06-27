@@ -1,7 +1,8 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "AgaveJobsCallback",
-	"description": "Agave API jobs service callback",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://schema.catalog.sd2e.org/schemas/agave_job_callback.json",
+    "title": "AgaveJobsPost",
+	"description": "A job status POST from the Agave API jobs service",
     "type": "object",
     "properties": {
         "owner": {

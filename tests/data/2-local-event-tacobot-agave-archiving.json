@@ -17,30 +17,11 @@
   "archivePath": "/biofab/yeast-gates/aq_10545/3/processed/fcs-etl-0.3.6u12/fresh-yak",
   "archiveSystem": "data-sd2e-community",
   "outputPath": "sd2eadm/job-6874237679603805720-242ac11b-0001-007-smoketest-aq_10545-3",
-  "status": "FINISHED",
+  "status": "ARCHIVING",
   "submitTime": "2018-06-11T12:31:16.000-05:00",
   "startTime": "2018-06-11T12:31:18.000-05:00",
   "endTime": "2018-06-11T12:46:02.000-05:00",
-  "inputs": {
-    "cytometerConfiguration": [
-      "agave://data-sd2e-community/biofab/yeast-gates/aq_10545/3/configurations/fcs-etl-0.3.6u12/cytometer_configuration.json"
-    ],
-    "processControl": [
-      "agave://data-sd2e-community/biofab/yeast-gates/aq_10545/3/configurations/fcs-etl-0.3.6u12/process_control_data.json"
-    ],
-    "experimentalData": [
-      "agave://data-sd2e-community/biofab/yeast-gates/aq_10545/3/configurations/fcs-etl-0.3.6u12/experimental_data.json"
-    ],
-    "colorModelParameters": [
-      "agave://data-sd2e-community/biofab/yeast-gates/aq_10545/3/configurations/fcs-etl-0.3.6u12/color_model_parameters.json"
-    ],
-    "analysisParameters": [
-      "agave://data-sd2e-community/biofab/yeast-gates/aq_10545/3/configurations/fcs-etl-0.3.6u12/analysis_parameters.json"
-    ],
-    "inputData": [
-      "agave://data-sd2e-community/biofab/yeast-gates/aq_10545/3/instrument_output"
-    ]
-  },
+  "inputs": {},
   "parameters": {
     "CONTAINER_IMAGE": [
       "sd2e/fcs-etl:0.3.6"

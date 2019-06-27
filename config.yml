@@ -1,16 +1,18 @@
 ---
 debug: false
-downloaded: downloaded.json
 logs:
   level: DEBUG
   token: ~
 mongodb:
-  database: catalog
-  host: catalog.sd2e.org
-  password: ~
-  port: 27020
-  username: catalog
-only_extant_files: false
-storagesystems:
-  data-sd2e-community:
-    posix_path: /work/projects/SD2E-Community/prod/data
+  authn: ~
+  database: catalog_staging
+pipelines:
+  pipeline_uuid: ~
+  pipeline_manager_id: pipelines-manager.prod
+  pipeline_manager_nonce: ~
+  job_manager_id: jobs-manager.prod
+  job_manager_nonce: ~
+  job_indexer_id: jobs-indexer.prod
+  job_indexer_nonce: ~
+  permission_manager: pems-agent.prod
+  process_uuid: 117a32a1-457c-5bfe-bded-ed0ca99e53f8
