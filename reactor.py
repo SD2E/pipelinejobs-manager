@@ -198,13 +198,14 @@ def main():
             up_job = store.handle(event_dict, cb_token)
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
             # Send message to control-annotator to update structured request with job status
-            try:
-                message = { 'uuid': up_job["uuid"], "state":  up_job["state"]}
-                resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
-            except Exception as exc:
-                rx.logger.warning(
-                    "Failed to send message to {}: {}".format(up_job["uuid"], exc)
-                )
+            if up_job["state"] == "FINISHED":
+                try:
+                    message = { 'uuid': up_job["uuid"], "state":  up_job["state"]}
+                    resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
+                except Exception as exc:
+                    rx.logger.warning(
+                        "Failed to send message to {}: {}".format(up_job["uuid"], exc)
+                    )
             
         # Special case: * - [finish] -> FINISHED
         #
