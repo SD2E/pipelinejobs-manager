@@ -1,7 +1,7 @@
 git+https://github.com/TACC/agavepy.git@0_7_4#egg=agavepy
 git+https://github.com/Julian/jsonschema@v3.0.0a3#egg=jsonschema
 PyMongo==3.7.1
-PyYAML==3.12
+PyYAML==5.1
 python-slugify>=1.2.5
 jsondiff>=1.1.2
 transitions>=0.6.8
