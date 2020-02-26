@@ -111,7 +111,6 @@ pipeline {
         always {
             sh "FORCE_LOCK_RELEASE=1 release-job-client ${CLIENT_PREFIX}-${BRANCH_NAME} ${BUILD_ID}"
             sh "FORCE_LOCK_RELEASE=1 release-job-client ${CLIENT_PREFIX}-${BRANCH_NAME}-deploy ${BUILD_ID}"
-            deleteDir()
         }
         success {
             slackSend ":white_check_mark: *${env.JOB_NAME}/${env.BUILD_NUMBER}* completed"
@@ -122,6 +121,7 @@ pipeline {
                     replyTo: "jenkins@sd2e.org",
                     from: "jenkins@sd2e.org"
             )
+            deleteDir()
         }
         failure {
             slackSend ":bomb: *${env.JOB_NAME}/${env.BUILD_NUMBER}* failed"
