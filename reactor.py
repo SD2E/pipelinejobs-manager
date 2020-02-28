@@ -197,7 +197,17 @@ def main():
             rx.logger.info("Handling '{}' event".format(event_dict["name"]))
             up_job = store.handle(event_dict, cb_token)
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
-
+            # Send message to control-annotator to update structured request with job status
+            # For RNA_SEQ, rnaseq-reactor.prod is the only V2 job that will eventually be VALIDATED
+            if up_job["state"] in ["FINISHED", "INDEXING", "VALIDATED"]:
+                try:
+                    message = { 'uuid': up_job["uuid"], "state":  up_job["state"]}
+                    resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
+                except Exception as exc:
+                    rx.logger.warning(
+                        "Failed to send message to {}: {}".format(up_job["uuid"], exc)
+                    )
+            
         # Special case: * - [finish] -> FINISHED
         #
         # Trigger indexing and run a permission grant
