@@ -202,11 +202,14 @@ def main():
             if up_job["state"] in ["FINISHED", "INDEXING", "VALIDATED"]:
                 try:
                     message = { 'uuid': up_job["uuid"], "state":  up_job["state"]}
+                    rx.logger.info("message: {}".format(message))
                     resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
                 except Exception as exc:
                     rx.logger.warning(
                         "Failed to send message to {}: {}".format(up_job["uuid"], exc)
                     )
+            else:
+                rx.logger.info("skipping message to control_annotator.prod for {}".format(up_job["state"]))
             
         # Special case: * - [finish] -> FINISHED
         #
