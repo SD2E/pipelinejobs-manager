@@ -23,6 +23,16 @@ def minify_job_dict(post_dict):
             del post_dict[strip_key]
     return post_dict
 
+def message_control_annotator(up_job, states, rx):
+    if up_job['state'] in states:
+        try:
+            message = { 'uuid': up_job['uuid'], "state": up_job['state']}
+            rx.logger.info("message: {}".format(message))
+            resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
+        except Exception as exc:
+            rx.logger.warning("Failed to send message to control-annotator.prod for job {}: {}".format(up_job['uuid'], exc))
+    else:
+        rx.logger.info("skipping message to control_annotator.prod for {}".format(up_job["state"]))
 
 def main():
 
@@ -167,7 +177,8 @@ def main():
 
     # Event handler
     try:
-
+        up_job = store.handle(event_dict, cb_token)
+        
         # Proxy 'index'
         if event_dict["name"] == "index":
             rx.logger.info("Proxying 'index' event")
@@ -179,6 +190,7 @@ def main():
             rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
             rx.logger.debug("Triggered indexing")
+            message_control_annotator(up_job, ["INDEXING"], rx)
 
         # Proxy 'indexed'
         elif event_dict["name"] == "indexed":
@@ -191,6 +203,7 @@ def main():
             rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
             rx.logger.debug("Triggered indexed")
+            message_control_annotator(up_job, ["FINISHED"], rx)
 
         # Handle all other events
         else:
@@ -199,17 +212,7 @@ def main():
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
             # Send message to control-annotator to update structured request with job status
             # For RNA_SEQ, rnaseq-reactor.prod is the only V2 job that will eventually be VALIDATED
-            if up_job["state"] in ["FINISHED", "INDEXING", "VALIDATED"]:
-                try:
-                    message = { 'uuid': up_job["uuid"], "state":  up_job["state"]}
-                    rx.logger.info("message: {}".format(message))
-                    resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
-                except Exception as exc:
-                    rx.logger.warning(
-                        "Failed to send message to {}: {}".format(up_job["uuid"], exc)
-                    )
-            else:
-                rx.logger.info("skipping message to control_annotator.prod for {}".format(up_job["state"]))
+            message_control_annotator(up_job, ["FINISHED", "VALIDATED"], rx)
             
         # Special case: * - [finish] -> FINISHED
         #
