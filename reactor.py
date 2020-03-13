@@ -221,7 +221,7 @@ def main():
             up_job = store.handle(event_dict, cb_token)
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
 
-            # Propagate non-index events to event-manager via message
+            # Propagate non-index events to events-manager via message
             # jobs-indexer needs to implement propagation for itself to ensure that
             # job terminal state is captured and sent along correctly
             try:
@@ -231,7 +231,7 @@ def main():
                     'job_state': up_job["state"],
                     'data': event_dict['data']
                 }
-                resp = rx.send_message("event-manager.prod",
+                resp = rx.send_message("events-manager.prod",
                                        handled_event_body,
                                        retryMaxAttempts=3)
             except Exception as exc:
