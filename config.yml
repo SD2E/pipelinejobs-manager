@@ -15,4 +15,6 @@ pipelines:
   job_indexer_id: jobs-indexer.prod
   job_indexer_nonce: ~
   permission_manager: pems-agent.prod
+  events_manager_id: events-manager.prod
+  events_manager_nonce: ~
   process_uuid: 117a32a1-457c-5bfe-bded-ed0ca99e53f8

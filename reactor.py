@@ -42,9 +42,10 @@ def main():
         for a in ["aloejobs", "event", "agavejobs"]:
             try:
                 rx.logger.info("Testing against {} schema".format(a))
-                rx.validate_message(
-                    m, messageschema="/schemas/" + a + ".jsonschema", permissive=False
-                )
+                rx.validate_message(m,
+                                    messageschema="/schemas/" + a +
+                                    ".jsonschema",
+                                    permissive=False)
                 action = a
                 break
             except Exception as exc:
@@ -83,6 +84,7 @@ def main():
     # Accept 'status', the Aloe-centric name for job.state
     # as well as 'state'
     cb_agave_status = rx.context.get("status", rx.context.get("state", None))
+    job_terminal_status = 'UNKNOWN'
 
     # Prepare template PipelineJobsEvent
     event_dict = {
@@ -140,21 +142,19 @@ def main():
                 # limit our scaling to one worker
                 #
                 agave_job_latest_history = rx.client.jobs.getHistory(
-                    jobId=mes_agave_job_id, limit=100
-                )[-1].get("description", None)
+                    jobId=mes_agave_job_id,
+                    limit=100)[-1].get("description", None)
                 if agave_job_latest_history is not None:
                     cb_data["description"] = agave_job_latest_history
             except Exception as agexc:
-                rx.logger.warning(
-                    "Failed to get history for {}: {}".format(mes_agave_job_id, agexc)
-                )
+                rx.logger.warning("Failed to get history for {}: {}".format(
+                    mes_agave_job_id, agexc))
 
         # Map the Agave job status to an PipelineJobsEvent name
         if cb_event_name is None and cb_agave_status is not None:
             cb_event_name = AgaveEvents.agavejobs.get(cb_agave_status, "update")
-            rx.logger.debug(
-                "Status: {} => Event: {}".format(cb_agave_status, cb_event_name)
-            )
+            rx.logger.debug("Status: {} => Event: {}".format(
+                cb_agave_status, cb_event_name))
 
         # Event name and data can be updated as part of processing an Agave POST
         # so apply the current values to event_dict here
@@ -162,7 +162,8 @@ def main():
         event_dict["data"] = cb_data
 
     # Sanity check event_dict and token
-    if event_dict["uuid"] is None or event_dict["name"] is None or cb_token is None:
+    if event_dict["uuid"] is None or event_dict[
+            "name"] is None or cb_token is None:
         rx.on_failure("No actionable event was received.")
 
     # Event handler
@@ -197,31 +198,56 @@ def main():
             rx.logger.info("Handling '{}' event".format(event_dict["name"]))
             up_job = store.handle(event_dict, cb_token)
             rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
+
+            # Propagate non-index events to event-manager via message
+            # jobs-indexer needs to implement propagation for itself to ensure that
+            # job terminal state is captured and sent along correctly
+            try:
+                handled_event_body = {
+                    'job_uuid': up_job["uuid"],
+                    'event_name': event_dict["name"],
+                    'job_state': up_job["state"],
+                    'data': event_dict['data']
+                }
+                resp = rx.send_message("event-manager.prod",
+                                       handled_event_body,
+                                       retryMaxAttempts=3)
+            except Exception as exc:
+                rx.logger.warning(
+                    "Failed to propagate handled() for {}: {}".format(
+                        event_dict["uuid"], exc))
+
             # Send message to control-annotator to update structured request with job status
             # For RNA_SEQ, rnaseq-reactor.prod is the only V2 job that will eventually be VALIDATED
             if up_job["state"] in ["FINISHED", "INDEXING", "VALIDATED"]:
                 try:
-                    message = { 'uuid': up_job["uuid"], "state":  up_job["state"]}
-                    resp = rx.send_message("control-annotator.prod", message, retryMaxAttempts=3)
+                    message = {'uuid': up_job["uuid"], "state": up_job["state"]}
+                    resp = rx.send_message("control-annotator.prod",
+                                           message,
+                                           retryMaxAttempts=3)
                 except Exception as exc:
-                    rx.logger.warning(
-                        "Failed to send message to {}: {}".format(up_job["uuid"], exc)
-                    )
-            
+                    rx.logger.warning("Failed to send message to {}: {}".format(
+                        up_job["uuid"], exc))
+
         # Special case: * - [finish] -> FINISHED
         #
         # Trigger indexing and run a permission grant
         if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
-            rx.logger.info("Detected FINISHED transition for {}".format(up_job["uuid"]))
+            rx.logger.info("Detected FINISHED transition for {}".format(
+                up_job["uuid"]))
             try:
                 rx.logger.debug("Triggering indexing workflow")
-                index_mes = {"name": "index", "uuid": up_job["uuid"], "token": cb_token}
+                index_mes = {
+                    "name": "index",
+                    "uuid": up_job["uuid"],
+                    "token": cb_token
+                }
                 rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
                 rx.logger.debug("Triggered indexing")
             except Exception as iexc:
                 rx.logger.warning(
-                    "Failed to request indexing for {}: {}".format(up_job["uuid"], iexc)
-                )
+                    "Failed to request indexing for {}: {}".format(
+                        up_job["uuid"], iexc))
 
             try:
                 rx.logger.debug("Triggering permissions grant")
@@ -235,13 +261,12 @@ def main():
                     "permission": "READ",
                     "recursive": True,
                 }
-                rx.send_message(rx.settings.pipelines.permission_manager, grant_mes)
+                rx.send_message(rx.settings.pipelines.permission_manager,
+                                grant_mes)
             except Exception as iexc:
                 rx.logger.warning(
                     "Failed to request permission grant for {}: {}".format(
-                        up_job["uuid"], iexc
-                    )
-                )
+                        up_job["uuid"], iexc))
 
     except Exception as exc:
         rx.on_failure("Event not processed", exc)
