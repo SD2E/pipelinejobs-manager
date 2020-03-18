@@ -6,11 +6,10 @@ from jsonschema import ValidationError
 from pprint import pprint
 from reactors.runtime import Reactor, agaveutils
 
-# AFAIK we don't need PipelineJobManager here - should be able to just
-# send event messages to the Job's handler function
-from datacatalog.linkedstores.pipelinejob import PipelineJobStore, AgaveEvents
+from datacatalog.linkedstores.pipelinejob import AgaveEvents
 from datacatalog.linkedstores.pipelinejob.exceptions import *
-
+from datacatalog.managers.pipelinejobs import ManagedPipelineJobInstance
+from datacatalog.managers.pipelinejobs import ManagedPipelineJobError
 
 def minify_job_dict(post_dict):
     """Strip out extraneous keys from an Agave job POST
@@ -22,6 +21,26 @@ def minify_job_dict(post_dict):
         if strip_key in post_dict:
             del post_dict[strip_key]
     return post_dict
+
+
+def forward_event(uuid, event, state=None, data={}, robj=None):
+    # Propagate events to events-manager via message
+    try:
+        handled_event_body = {
+            'job_uuid': uuid,
+            'event_name': event,
+            'job_state': state,
+            'data': data
+        }
+        # robj.logger.info('forward_event: {}'.format(handled_event_body))
+        resp = robj.send_message(robj.settings.pipelines.events_manager_id,
+                                 handled_event_body,
+                                 retryMaxAttempts=3)
+        return True
+    except Exception as exc:
+        robj.logger.warning(
+            "Failed to propagate handled({0}) for {1}: {2}".format(
+                event, uuid, exc))
 
 
 def message_control_annotator(up_job, states, rx):
@@ -74,10 +93,9 @@ def main():
     except Exception as vexc:
         rx.on_failure("Failed to process message", vexc)
 
-    rx.logger.debug("SCHEMA DETECTED: {}".format(action))
+    # rx.logger.debug("SCHEMA DETECTED: {}".format(action))
 
-    store = PipelineJobStore(mongodb=rx.settings.mongodb)
-
+    # store = PipelineJobStore(mongodb=rx.settings.mongodb)
     # Process the event
 
     # Get URL params from Abaco context
@@ -102,7 +120,6 @@ def main():
     # Accept 'status', the Aloe-centric name for job.state
     # as well as 'state'
     cb_agave_status = rx.context.get("status", rx.context.get("state", None))
-    job_terminal_status = 'UNKNOWN'
 
     # Prepare template PipelineJobsEvent
     event_dict = {
@@ -122,7 +139,7 @@ def main():
     # create one. To do so, an Agave job must be launched
     # using the PipelineJobsAgaveProxy resource.
     if action == "agavejobs":
-        rx.on_failure("Agave callbacks are no longer supported")
+        rx.on_failure("Agave job callbacks are no longer supported")
     elif action == "aloejobs":
         try:
             # Aloe jobs POST their current JSON representation to
@@ -185,103 +202,54 @@ def main():
             "name"] is None or cb_token is None:
         rx.on_failure("No actionable event was received.")
 
-    # Event handler
-    try:
-        up_job = store.handle(event_dict, cb_token)
+    # Instantiate a job instance to leverage the MPJ framework
+    store = ManagedPipelineJobInstance(rx.settings.mongodb, event_dict["uuid"], agave=rx.client)
 
+    # Handle event...
+    try:
+
+        # First, proxy events. This code forwards index and indexed events to the jobs-indexer
         # Proxy 'index'
         if event_dict["name"] == "index":
-            rx.logger.info("Proxying 'index' event")
+            rx.logger.info("Forwarding 'index'")
             index_mes = {
                 "name": "index",
                 "uuid": event_dict["uuid"],
                 "token": event_dict["token"],
             }
-            rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
-            rx.logger.debug("Triggered indexing")
-            message_control_annotator(up_job, ["INDEXING"], rx)
+            # Disable this since it should be picked up via events-manager subscription
+            # message_control_annotator(up_job, ["INDEXING"], rx)
 
         # Proxy 'indexed'
         elif event_dict["name"] == "indexed":
-            rx.logger.info("Proxying 'indexed' event")
+            rx.logger.info("Forwarding 'indexed'")
             index_mes = {
                 "name": "indexed",
                 "uuid": event_dict["uuid"],
                 "token": event_dict["token"],
             }
-            rx.logger.debug("Message: {}".format(index_mes))
             rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
-            rx.logger.debug("Triggered indexed")
-            message_control_annotator(up_job, ["FINISHED"], rx)
+            # Disable this since it should be picked up via events-manager subscription
+            # message_control_annotator(up_job, ["FINISHED"], rx)
 
         # Handle all other events
         else:
-            rx.logger.info("Handling '{}' event".format(event_dict["name"]))
+            rx.logger.info("Handling '{}'".format(event_dict["name"]))
+            # Get the current state of the MPJ. We use this to detect if 
+            # handling the event has resulted in a change of state
+            store_state = store.state
+            # Send event at the beginning of state change so subscribers can pick 
+            # up, for instance, a case where the job receives an index event and 
+            # is in the FINISHED state.
+            forward_event(event_dict["uuid"], event_dict['name'], store_state,
+                          {}, rx)
             up_job = store.handle(event_dict, cb_token)
-            rx.logger.info("Job state is now: '{}'".format(up_job["state"]))
-
-            # Propagate non-index events to events-manager via message
-            # jobs-indexer needs to implement propagation for itself to ensure that
-            # job terminal state is captured and sent along correctly
-            try:
-                handled_event_body = {
-                    'job_uuid': up_job["uuid"],
-                    'event_name': event_dict["name"],
-                    'job_state': up_job["state"],
-                    'data': event_dict['data']
-                }
-                resp = rx.send_message("events-manager.prod",
-                                       handled_event_body,
-                                       retryMaxAttempts=3)
-            except Exception as exc:
-                rx.logger.warning(
-                    "Failed to propagate handled() for {}: {}".format(
-                        event_dict["uuid"], exc))
-
-            # Send message to control-annotator to update structured request with job status
-            # For RNA_SEQ, rnaseq-reactor.prod is the only V2 job that will eventually be VALIDATED
-            message_control_annotator(up_job, ["FINISHED", "VALIDATED"], rx)
-
-        # Special case: * - [finish] -> FINISHED
-        #
-        # Trigger indexing and run a permission grant
-        if event_dict["name"] == "finish" and up_job["state"] == "FINISHED":
-            rx.logger.info("Detected FINISHED transition for {}".format(
-                up_job["uuid"]))
-            try:
-                rx.logger.debug("Triggering indexing workflow")
-                index_mes = {
-                    "name": "index",
-                    "uuid": up_job["uuid"],
-                    "token": cb_token
-                }
-                rx.send_message(rx.settings.pipelines.job_indexer_id,
-                                index_mes)
-                rx.logger.debug("Triggered indexing")
-            except Exception as iexc:
-                rx.logger.warning(
-                    "Failed to request indexing for {}: {}".format(
-                        up_job["uuid"], iexc))
-
-            try:
-                rx.logger.debug("Triggering permissions grant")
-                resp = store.find_one_by_uuid(up_job["uuid"])
-                archive_path = resp.get("archive_path", None)
-                archive_system = resp.get("archive_system", None)
-                archive_agave_path = "agave://" + archive_system + archive_path
-                grant_mes = {
-                    "uri": archive_agave_path,
-                    "username": "world",
-                    "permission": "READ",
-                    "recursive": True,
-                }
-                rx.send_message(rx.settings.pipelines.permission_manager,
-                                grant_mes)
-            except Exception as iexc:
-                rx.logger.warning(
-                    "Failed to request permission grant for {}: {}".format(
-                        up_job["uuid"], iexc))
+            if store_state != up_job["state"]:
+                rx.logger.debug("Job state now: '{}'".format(up_job["state"]))
+                # Only send second event if a state transition was detected
+                forward_event(up_job["uuid"], event_dict['name'],
+                              up_job["state"], {}, rx)
 
     except Exception as exc:
         rx.on_failure("Event not processed", exc)
