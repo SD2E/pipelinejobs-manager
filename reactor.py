@@ -35,7 +35,7 @@ def forward_event(uuid, event, state=None, data={}, robj=None):
         # robj.logger.info('forward_event: {}'.format(handled_event_body))
         resp = robj.send_message(robj.settings.pipelines.events_manager_id,
                                  handled_event_body,
-                                 retryMaxAttempts=3)
+                                 retryMaxAttempts=10)
         return True
     except Exception as exc:
         robj.logger.warning(
@@ -50,7 +50,7 @@ def message_control_annotator(up_job, states, rx):
             rx.logger.info("message: {}".format(message))
             resp = rx.send_message("control-annotator.prod",
                                    message,
-                                   retryMaxAttempts=3)
+                                   retryMaxAttempts=10)
         except Exception as exc:
             rx.logger.warning(
                 "Failed to send message to control-annotator.prod for job {}: {}"
@@ -217,7 +217,7 @@ def main():
                 "uuid": event_dict["uuid"],
                 "token": event_dict["token"],
             }
-            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes, retryMaxAttempts=10)
             # Disable this since it should be picked up via events-manager subscription
             # message_control_annotator(up_job, ["INDEXING"], rx)
 
@@ -229,7 +229,7 @@ def main():
                 "uuid": event_dict["uuid"],
                 "token": event_dict["token"],
             }
-            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes)
+            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes, retryMaxAttempts=10)
             # Disable this since it should be picked up via events-manager subscription
             # message_control_annotator(up_job, ["FINISHED"], rx)
 
@@ -239,17 +239,18 @@ def main():
             # Get the current state of the MPJ. We use this to detect if 
             # handling the event has resulted in a change of state
             store_state = store.state
+            last_event = store.last_event
             # Send event at the beginning of state change so subscribers can pick 
             # up, for instance, a case where the job receives an index event and 
             # is in the FINISHED state.
             forward_event(event_dict["uuid"], event_dict['name'], store_state,
-                          {}, rx)
+                          {'last_event': last_event}, rx)
             up_job = store.handle(event_dict, cb_token)
             if store_state != up_job["state"]:
                 rx.logger.debug("Job state now: '{}'".format(up_job["state"]))
                 # Only send second event if a state transition was detected
                 forward_event(up_job["uuid"], event_dict['name'],
-                              up_job["state"], {}, rx)
+                              up_job["state"], {"last_event": up_job["last_event"]}, rx)
 
     except Exception as exc:
         rx.on_failure("Event not processed", exc)
