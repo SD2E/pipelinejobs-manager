@@ -11,6 +11,7 @@ from datacatalog.linkedstores.pipelinejob.exceptions import *
 from datacatalog.managers.pipelinejobs import ManagedPipelineJobInstance
 from datacatalog.managers.pipelinejobs import ManagedPipelineJobError
 
+
 def minify_job_dict(post_dict):
     """Strip out extraneous keys from an Agave job POST
 
@@ -203,7 +204,9 @@ def main():
         rx.on_failure("No actionable event was received.")
 
     # Instantiate a job instance to leverage the MPJ framework
-    store = ManagedPipelineJobInstance(rx.settings.mongodb, event_dict["uuid"], agave=rx.client)
+    store = ManagedPipelineJobInstance(rx.settings.mongodb,
+                                       event_dict["uuid"],
+                                       agave=rx.client)
 
     # Handle event...
     try:
@@ -217,7 +220,9 @@ def main():
                 "uuid": event_dict["uuid"],
                 "token": event_dict["token"],
             }
-            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes, retryMaxAttempts=10)
+            rx.send_message(rx.settings.pipelines.job_indexer_id,
+                            index_mes,
+                            retryMaxAttempts=10)
             # Disable this since it should be picked up via events-manager subscription
             # message_control_annotator(up_job, ["INDEXING"], rx)
 
@@ -229,28 +234,32 @@ def main():
                 "uuid": event_dict["uuid"],
                 "token": event_dict["token"],
             }
-            rx.send_message(rx.settings.pipelines.job_indexer_id, index_mes, retryMaxAttempts=10)
+            rx.send_message(rx.settings.pipelines.job_indexer_id,
+                            index_mes,
+                            retryMaxAttempts=10)
             # Disable this since it should be picked up via events-manager subscription
             # message_control_annotator(up_job, ["FINISHED"], rx)
 
         # Handle all other events
         else:
             rx.logger.info("Handling '{}'".format(event_dict["name"]))
-            # Get the current state of the MPJ. We use this to detect if 
+            # Get the current state of the MPJ. We use this to detect if
             # handling the event has resulted in a change of state
             store_state = store.state
             last_event = store.last_event
-            # Send event at the beginning of state change so subscribers can pick 
-            # up, for instance, a case where the job receives an index event and 
+
+            # Send event at the beginning of state change so subscribers can pick
+            # up, for instance, a case where the job receives an index event and
             # is in the FINISHED state.
-            forward_event(event_dict["uuid"], event_dict['name'], store_state,
-                          {'last_event': last_event}, rx)
+            if rx.settings.state_enter:
+                forward_event(event_dict["uuid"], event_dict['name'],
+                              store_state, {'last_event': last_event}, rx)
+
             up_job = store.handle(event_dict, cb_token)
-            if store_state != up_job["state"]:
-                rx.logger.debug("Job state now: '{}'".format(up_job["state"]))
-                # Only send second event if a state transition was detected
+            if rx.settings.state_exit:
                 forward_event(up_job["uuid"], event_dict['name'],
-                              up_job["state"], {"last_event": up_job["last_event"]}, rx)
+                              up_job["state"],
+                              {"last_event": up_job["last_event"]}, rx)
 
     except Exception as exc:
         rx.on_failure("Event not processed", exc)

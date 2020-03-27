@@ -1,4 +1,6 @@
 ---
+state_enter: false
+state_exit: true
 debug: false
 logs:
   level: DEBUG
